@@ -36,12 +36,12 @@ android {
         buildConfigField(
             "String",
             "SUPABASE_URL",
-            localProperties.getProperty("SUPABASE_URL", "\"\"")
+            "\"${localProperties.getProperty("SUPABASE_URL", "")}\""
         )
         buildConfigField(
             "String",
             "SUPABASE_ANON_KEY",
-            localProperties.getProperty("SUPABASE_ANON_KEY", "\"\"")
+            "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\""
         )
     }
 
@@ -60,6 +60,10 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+    kapt {
+        correctErrorTypes = true
+        useBuildCache = true
     }
     buildFeatures {
         compose = true
