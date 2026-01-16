@@ -14,6 +14,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.example.quotevaultapp.navigation.NavAnimations.fadeInAnimation
+import com.example.quotevaultapp.navigation.NavAnimations.fadeOutAnimation
+import com.example.quotevaultapp.navigation.NavAnimations.slideInFromLeft
+import com.example.quotevaultapp.navigation.NavAnimations.slideInFromRight
+import com.example.quotevaultapp.navigation.NavAnimations.slideOutToLeft
+import com.example.quotevaultapp.navigation.NavAnimations.slideOutToRight
 import com.example.quotevaultapp.domain.repository.AuthRepository
 import com.example.quotevaultapp.presentation.auth.ForgotPasswordScreen
 import com.example.quotevaultapp.presentation.auth.LoginScreen
@@ -63,7 +69,11 @@ fun QuoteVaultNavGraph(
         startDestination = initialRoute
     ) {
         // Splash Screen
-        composable(Screen.Splash.route) {
+        composable(
+            route = Screen.Splash.route,
+            enterTransition = { fadeInAnimation() },
+            exitTransition = { fadeOutAnimation() }
+        ) {
             SplashScreen(
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route) {
@@ -80,7 +90,13 @@ fun QuoteVaultNavGraph(
         }
         
         // Auth Screens
-        composable(Screen.Login.route) {
+        composable(
+            route = Screen.Login.route,
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popEnterTransition = { slideInFromLeft() },
+            popExitTransition = { slideOutToRight() }
+        ) {
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
@@ -96,7 +112,13 @@ fun QuoteVaultNavGraph(
             )
         }
         
-        composable(Screen.SignUp.route) {
+        composable(
+            route = Screen.SignUp.route,
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popEnterTransition = { slideInFromLeft() },
+            popExitTransition = { slideOutToRight() }
+        ) {
             SignUpScreen(
                 onSignUpSuccess = {
                     navController.navigate(Screen.Home.route) {
@@ -109,7 +131,13 @@ fun QuoteVaultNavGraph(
             )
         }
         
-        composable(Screen.ForgotPassword.route) {
+        composable(
+            route = Screen.ForgotPassword.route,
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popEnterTransition = { slideInFromLeft() },
+            popExitTransition = { slideOutToRight() }
+        ) {
             ForgotPasswordScreen(
                 onNavigateBack = {
                     navController.popBackStack()
@@ -118,7 +146,11 @@ fun QuoteVaultNavGraph(
         }
         
         // Main App Screens with Bottom Navigation (Nested Graph)
-        composable(Screen.Home.route) {
+        composable(
+            route = Screen.Home.route,
+            enterTransition = { fadeInAnimation() },
+            exitTransition = { fadeOutAnimation() }
+        ) {
             HomeScreen(
                 onQuoteClick = { quoteId ->
                     navController.navigate(Screen.QuoteDetail.createRoute(quoteId))
@@ -129,7 +161,11 @@ fun QuoteVaultNavGraph(
             )
         }
         
-        composable(Screen.Favorites.route) {
+        composable(
+            route = Screen.Favorites.route,
+            enterTransition = { fadeInAnimation() },
+            exitTransition = { fadeOutAnimation() }
+        ) {
             FavoritesScreen(
                 onQuoteClick = { quoteId ->
                     navController.navigate(Screen.QuoteDetail.createRoute(quoteId))
@@ -137,7 +173,11 @@ fun QuoteVaultNavGraph(
             )
         }
         
-        composable(Screen.Collections.route) {
+        composable(
+            route = Screen.Collections.route,
+            enterTransition = { fadeInAnimation() },
+            exitTransition = { fadeOutAnimation() }
+        ) {
             CollectionsScreen(
                 onCollectionClick = { collectionId ->
                     navController.navigate(Screen.CollectionDetail.createRoute(collectionId))
@@ -145,7 +185,11 @@ fun QuoteVaultNavGraph(
             )
         }
         
-        composable(Screen.Profile.route) {
+        composable(
+            route = Screen.Profile.route,
+            enterTransition = { fadeInAnimation() },
+            exitTransition = { fadeOutAnimation() }
+        ) {
             ProfileScreen(
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
@@ -166,7 +210,11 @@ fun QuoteVaultNavGraph(
                 navDeepLink {
                     uriPattern = DeepLink.QUOTE_DETAIL
                 }
-            )
+            ),
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popEnterTransition = { slideInFromLeft() },
+            popExitTransition = { slideOutToRight() }
         ) { backStackEntry ->
             val quoteId = backStackEntry.arguments?.getString("quoteId") ?: ""
             
@@ -186,7 +234,11 @@ fun QuoteVaultNavGraph(
                 navDeepLink {
                     uriPattern = DeepLink.COLLECTION_DETAIL
                 }
-            )
+            ),
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popEnterTransition = { slideInFromLeft() },
+            popExitTransition = { slideOutToRight() }
         ) { backStackEntry ->
             val collectionId = backStackEntry.arguments?.getString("collectionId") ?: ""
             
@@ -200,7 +252,13 @@ fun QuoteVaultNavGraph(
         }
         
         // Settings Screen
-        composable(Screen.Settings.route) {
+        composable(
+            route = Screen.Settings.route,
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popEnterTransition = { slideInFromLeft() },
+            popExitTransition = { slideOutToRight() }
+        ) {
             SettingsScreen(
                 onBack = {
                     navController.popBackStack()

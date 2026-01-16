@@ -1,4 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">QuoteVaultApp</string>
+    <!-- App -->
+    <string name="app_name">QuoteVault</string>
     <string name="widget_description">Daily inspirational quotes on your home screen</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_favorites">Favorites</string>
+    <string name="nav_collections">Collections</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_settings">Settings</string>
+    
+    <!-- Auth -->
+    <string name="login_title">Sign In</string>
+    <string name="login_email_hint">Email</string>
+    <string name="login_password_hint">Password</string>
+    <string name="login_button">Sign In</string>
+    <string name="login_forgot_password">Forgot password?</string>
+    <string name="login_sign_up_link">Don\'t have an account? Sign up</string>
+    <string name="login_error">Login failed. Please check your credentials.</string>
+    <string name="login_loading">Signing in…</string>
+    
+    <string name="signup_title">Create Account</string>
+    <string name="signup_display_name_hint">Display Name (Optional)</string>
+    <string name="signup_email_hint">Email</string>
+    <string name="signup_password_hint">Password</string>
+    <string name="signup_confirm_password_hint">Confirm Password</string>
+    <string name="signup_button">Sign Up</string>
+    <string name="signup_login_link">Already have an account? Sign in</string>
+    <string name="signup_error">Sign up failed. Please try again.</string>
+    <string name="signup_success">Account created successfully!</string>
+    <string name="signup_loading">Creating account…</string>
+    
+    <string name="forgot_password_title">Reset Password</string>
+    <string name="forgot_password_email_hint">Email</string>
+    <string name="forgot_password_button">Send Reset Link</string>
+    <string name="forgot_password_success">Password reset link sent to your email</string>
+    <string name="forgot_password_error">Failed to send reset link. Please try again.</string>
+    <string name="forgot_password_loading">Sending reset link…</string>
+    
+    <!-- Home -->
+    <string name="home_title">QuoteVault</string>
+    <string name="home_search_hint">Search quotes…</string>
+    <string name="home_quote_of_the_day">Quote of the Day</string>
+    <string name="home_categories_all">All</string>
+    <string name="home_categories_motivation">Motivation</string>
+    <string name="home_categories_love">Love</string>
+    <string name="home_categories_success">Success</string>
+    <string name="home_categories_wisdom">Wisdom</string>
+    <string name="home_categories_humor">Humor</string>
+    <string name="home_empty_title">No quotes found</string>
+    <string name="home_empty_message">Try a different search or check back later</string>
+    <string name="home_error_title">Error loading quotes</string>
+    <string name="home_error_message">Unable to load quotes. Please try again.</string>
+    <string name="home_retry">Retry</string>
+    
+    <!-- Favorites -->
+    <string name="favorites_title">Favorites</string>
+    <string name="favorites_search_hint">Search favorites…</string>
+    <string name="favorites_empty_title">No favorites yet</string>
+    <string name="favorites_empty_message">Start favoriting quotes to see them here</string>
+    <string name="favorites_syncing">Syncing…</string>
+    <string name="favorites_error">Failed to load favorites</string>
+    
+    <!-- Collections -->
+    <string name="collections_title">Collections</string>
+    <string name="collections_empty_title">No collections yet</string>
+    <string name="collections_empty_message">Create a collection to organize your favorite quotes</string>
+    <string name="collections_create">Create Collection</string>
+    <string name="collections_quotes_count">%d quotes</string>
+    <string name="collections_error">Failed to load collections</string>
+    
+    <!-- Collection Detail -->
+    <string name="collection_detail_title">Collection</string>
+    <string name="collection_detail_empty_title">No quotes in collection</string>
+    <string name="collection_detail_empty_message">Add quotes to this collection</string>
+    <string name="collection_detail_add_quote">Add Quote</string>
+    <string name="collection_detail_edit">Edit Collection</string>
+    <string name="collection_detail_delete">Delete Collection</string>
+    <string name="collection_detail_edit_name">Collection Name</string>
+    <string name="collection_detail_edit_description">Description (Optional)</string>
+    <string name="collection_detail_delete_confirm">Delete this collection?</string>
+    <string name="collection_detail_save">Save</string>
+    <string name="collection_detail_cancel">Cancel</string>
+    <string name="collection_detail_error">Failed to load collection</string>
+    
+    <!-- Quote Detail -->
+    <string name="quote_detail_title">Quote Detail</string>
+    <string name="quote_detail_template_label">Choose Template</string>
+    <string name="quote_detail_template_gradient">Gradient</string>
+    <string name="quote_detail_template_minimal">Minimal</string>
+    <string name="quote_detail_template_bold">Bold</string>
+    <string name="quote_detail_share_image">Share Image</string>
+    <string name="quote_detail_save">Save</string>
+    <string name="quote_detail_generating">Generating…</string>
+    <string name="quote_detail_saving">Saving…</string>
+    
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_sign_out">Sign Out</string>
+    <string name="profile_not_signed_in">Not signed in</string>
+    
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_section_account">Account</string>
+    <string name="settings_section_about">About</string>
+    
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system">System Default</string>
+    
+    <string name="settings_font_size">Font Size</string>
+    <string name="settings_font_size_small">Small</string>
+    <string name="settings_font_size_medium">Medium</string>
+    <string name="settings_font_size_large">Large</string>
+    
+    <string name="settings_preview">Preview</string>
+    
+    <string name="settings_notification_enabled">Daily Quote Notification</string>
+    <string name="settings_notification_description">Get inspired daily with a quote</string>
+    <string name="settings_notification_time_format">Daily at %s</string>
+    
+    <string name="settings_display_name">Display Name</string>
+    <string name="settings_display_name_not_set">Not set</string>
+    <string name="settings_display_name_edit">Edit Display Name</string>
+    <string name="settings_display_name_save">Save</string>
+    
+    <string name="settings_profile_picture">Profile Picture</string>
+    <string name="settings_profile_picture_change">Tap to change</string>
+    
+    <string name="settings_sign_out">Sign Out</string>
+    <string name="settings_sign_out_confirm">Are you sure you want to sign out?</string>
+    
+    <string name="settings_version">Version</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_privacy_policy_description">View our privacy policy</string>
+    <string name="settings_terms_of_service">Terms of Service</string>
+    <string name="settings_terms_description">View terms and conditions</string>
+    
+    <!-- Notifications -->
+    <string name="notification_daily_quote_title">Daily Quote</string>
+    <string name="notification_daily_quote_channel_name">Daily Quotes</string>
+    <string name="notification_daily_quote_channel_description">Notifications for your daily inspirational quotes</string>
+    
+    <!-- Actions -->
+    <string name="action_share">Share</string>
+    <string name="action_favorite">Add to favorites</string>
+    <string name="action_unfavorite">Remove from favorites</string>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_done">Done</string>
+    
+    <!-- Accessibility -->
+    <string name="content_description_favorite_button">Favorite this quote</string>
+    <string name="content_description_unfavorite_button">Remove from favorites</string>
+    <string name="content_description_share_button">Share quote</string>
+    <string name="content_description_search">Search quotes</string>
+    <string name="content_description_category_badge">Category: %s</string>
+    <string name="content_description_quote_card">Quote by %1$s: %2$s</string>
+    <string name="content_description_loading">Loading</string>
+    <string name="content_description_empty_state">No items to display</string>
+    <string name="content_description_error_state">Error occurred</string>
+    
+    <!-- Errors -->
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_unknown">An unexpected error occurred</string>
+    <string name="error_load_failed">Failed to load data</string>
+    <string name="error_save_failed">Failed to save changes</string>
+    <string name="error_delete_failed">Failed to delete</string>
+    <string name="error_invalid_email">Please enter a valid email address</string>
+    <string name="error_weak_password">Password must be at least 6 characters</string>
+    <string name="error_password_mismatch">Passwords do not match</string>
+    <string name="error_required_field">This field is required</string>
+    
+    <!-- General -->
+    <string name="loading">Loading…</string>
+    <string name="saving">Saving…</string>
+    <string name="deleting">Deleting…</string>
+    <string name="no_results">No results found</string>
+    <string name="pull_to_refresh">Pull to refresh</string>
+    <string name="swipe_to_delete">Swipe to delete</string>
 </resources>
