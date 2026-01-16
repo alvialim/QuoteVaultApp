@@ -90,7 +90,7 @@ fun HomeScreen(
     
     val pullRefreshState = rememberPullRefreshState(
         refreshing = uiState.isRefreshing,
-        onRefresh = { viewModel.refreshQuotes() }
+        onRefresh = { viewModel.onRefresh() }
     )
     
     // Handle pagination - load more when near the end
