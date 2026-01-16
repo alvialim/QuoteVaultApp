@@ -31,6 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,7 +61,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuoteDetailScreen(
-    quote: Quote,
+    quoteId: String,
+    quote: Quote? = null,
     onBack: () -> Unit = {},
     fontSize: FontSize = FontSize.MEDIUM,
     viewModel: QuoteDetailViewModel = hiltViewModel()
@@ -69,6 +72,34 @@ fun QuoteDetailScreen(
     var selectedTemplate by remember { mutableStateOf(QuoteCardTemplateStyle.GRADIENT) }
     var isGeneratingBitmap by remember { mutableStateOf(false) }
     var isSavingImage by remember { mutableStateOf(false) }
+    
+    // Use provided quote or load from ViewModel
+    val quoteState by viewModel.quote.collectAsState()
+    val displayedQuote = quote ?: quoteState
+    
+    // Load quote if not provided
+    LaunchedEffect(quoteId) {
+        if (quote == null && quoteState == null) {
+            viewModel.setQuote(
+                Quote(
+                    id = quoteId,
+                    text = "Loading quote...",
+                    author = "Loading",
+                    category = com.example.quotevaultapp.domain.model.QuoteCategory.GENERAL,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+            // TODO: Load actual quote when getQuoteById is implemented
+        } else if (quote != null) {
+            viewModel.setQuote(quote)
+        }
+    }
+    
+    // Show loading or error if quote is not available
+    if (displayedQuote == null) {
+        com.example.quotevaultapp.presentation.components.LoadingIndicator()
+        return
+    }
     
     Scaffold(
         topBar = {
@@ -84,7 +115,7 @@ fun QuoteDetailScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { ShareHelper.shareQuoteAsText(context, quote) }
+                        onClick = { displayedQuote?.let { ShareHelper.shareQuoteAsText(context, it) } }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Share,
@@ -132,11 +163,13 @@ fun QuoteDetailScreen(
                     .height(500.dp),
                 contentAlignment = Alignment.Center
             ) {
-                QuoteCardTemplate(
-                    quote = quote,
-                    style = selectedTemplate,
-                    modifier = Modifier.fillMaxSize()
-                )
+                displayedQuote?.let { q ->
+                    QuoteCardTemplate(
+                        quote = q,
+                        style = selectedTemplate,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -157,7 +190,6 @@ fun QuoteDetailScreen(
                                     quote = quote,
                                     style = selectedTemplate
                                 )
-                                ShareHelper.shareQuoteAsImage(context, bitmap)
                             } catch (e: Exception) {
                                 android.util.Log.e("QuoteDetail", "Failed to share image: ${e.message}", e)
                             } finally {
@@ -191,15 +223,17 @@ fun QuoteDetailScreen(
                         isSavingImage = true
                         scope.launch {
                             try {
-                                val bitmap = QuoteCardGenerator.generateBitmap(
-                                    context = context,
-                                    quote = quote,
-                                    style = selectedTemplate
-                                )
-                                val uri = ShareHelper.saveImageToGallery(context, bitmap)
-                                if (uri != null) {
-                                    // Show success message (could use a snackbar)
-                                    android.util.Log.d("QuoteDetail", "Image saved: $uri")
+                                displayedQuote?.let { q ->
+                                    val bitmap = QuoteCardGenerator.generateBitmap(
+                                        context = context,
+                                        quote = q,
+                                        style = selectedTemplate
+                                    )
+                                    val uri = ShareHelper.saveImageToGallery(context, bitmap)
+                                    if (uri != null) {
+                                        // Show success message (could use a snackbar)
+                                        android.util.Log.d("QuoteDetail", "Image saved: $uri")
+                                    }
                                 }
                             } catch (e: Exception) {
                                 android.util.Log.e("QuoteDetail", "Failed to save image: ${e.message}", e)
