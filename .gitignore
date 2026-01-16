@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Supabase API Keys (sensitive)
+# Never commit API keys to version control
+**/local.properties
+*.properties
+!gradle.properties

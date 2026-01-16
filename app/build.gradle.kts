@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -13,6 +16,13 @@ android {
         version = release(36)
     }
 
+    // Load local.properties for API keys
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(FileInputStream(localPropertiesFile))
+    }
+
     defaultConfig {
         applicationId = "com.example.quotevaultapp"
         minSdk = 29
@@ -21,6 +31,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Supabase configuration from local.properties
+        buildConfigField(
+            "String",
+            "SUPABASE_URL",
+            localProperties.getProperty("SUPABASE_URL", "\"\"")
+        )
+        buildConfigField(
+            "String",
+            "SUPABASE_ANON_KEY",
+            localProperties.getProperty("SUPABASE_ANON_KEY", "\"\"")
+        )
     }
 
     buildTypes {
@@ -41,6 +63,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeCompiler {
         // Strong skipping mode is enabled by default in newer Compose compiler versions
