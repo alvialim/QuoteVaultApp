@@ -125,6 +125,8 @@ dependencies {
     
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    kapt("androidx.hilt:hilt-compiler:1.2.0")
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
