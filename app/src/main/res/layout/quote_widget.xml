@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@android:color/white">
+
+    <!-- App Branding -->
+    <TextView
+        android:id="@+id/widget_app_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="QuoteVault"
+        android:textSize="12sp"
+        android:textColor="#9E9E9E"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Quote Text -->
+    <TextView
+        android:id="@+id/widget_quote_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Loading quote..."
+        android:textSize="16sp"
+        android:textColor="#212121"
+        android:textStyle="normal"
+        android:gravity="start"
+        android:lineSpacingMultiplier="1.2"
+        android:minHeight="60dp" />
+
+    <!-- Author Text -->
+    <TextView
+        android:id="@+id/widget_quote_author"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_gravity="end"
+        android:text="— Author"
+        android:textSize="14sp"
+        android:textColor="#757575"
+        android:textStyle="italic" />
+
+</LinearLayout>

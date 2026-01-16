@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">QuoteVaultApp</string>
+    <string name="widget_description">Daily inspirational quotes on your home screen</string>
 </resources>
