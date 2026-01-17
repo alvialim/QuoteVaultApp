@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun EmptyState(
-    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Inbox,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Filled.Info,
     title: String,
     subtitle: String? = null,
     actionButtonText: String? = null,
@@ -111,7 +111,7 @@ fun EmptyState(
  */
 @Composable
 fun EmptyStateOutlined(
-    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Inbox,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Filled.Info,
     title: String,
     subtitle: String? = null,
     actionButtonText: String? = null,

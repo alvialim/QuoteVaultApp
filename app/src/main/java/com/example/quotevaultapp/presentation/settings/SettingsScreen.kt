@@ -20,7 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -49,7 +49,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.example.quotevaultapp.BuildConfig
 import com.example.quotevaultapp.domain.model.AppTheme
 import com.example.quotevaultapp.domain.model.FontSize
@@ -67,16 +69,24 @@ import java.util.Locale
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit = {},
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel? = null
 ) {
     val context = LocalContext.current
-    val currentUser by viewModel.currentUser.collectAsState()
-    val theme by viewModel.theme.collectAsState()
-    val fontSize by viewModel.fontSize.collectAsState()
-    val notificationEnabled by viewModel.notificationEnabled.collectAsState()
-    val notificationHour by viewModel.notificationHour.collectAsState()
-    val notificationMinute by viewModel.notificationMinute.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
+    val settingsViewModel: SettingsViewModel = viewModel ?: viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return SettingsViewModel(context.applicationContext) as T
+            }
+        }
+    )
+    val currentUser by settingsViewModel.currentUser.collectAsState()
+    val theme by settingsViewModel.theme.collectAsState()
+    val fontSize by settingsViewModel.fontSize.collectAsState()
+    val notificationEnabled by settingsViewModel.notificationEnabled.collectAsState()
+    val notificationHour by settingsViewModel.notificationHour.collectAsState()
+    val notificationMinute by settingsViewModel.notificationMinute.collectAsState()
+    val uiState by settingsViewModel.uiState.collectAsState()
     
     var showEditDisplayNameDialog by remember { mutableStateOf(false) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
@@ -140,7 +150,7 @@ fun SettingsScreen(
                         val themes = AppTheme.values()
                         val currentIndex = themes.indexOf(theme)
                         val nextIndex = (currentIndex + 1) % themes.size
-                        viewModel.updateTheme(themes[nextIndex])
+                        settingsViewModel.updateTheme(themes[nextIndex])
                     }
                 )
                 
@@ -158,7 +168,7 @@ fun SettingsScreen(
                         val sizes = FontSize.values()
                         val currentIndex = sizes.indexOf(fontSize)
                         val nextIndex = (currentIndex + 1) % sizes.size
-                        viewModel.updateFontSize(sizes[nextIndex])
+                        settingsViewModel.updateFontSize(sizes[nextIndex])
                     }
                 )
                 
@@ -210,7 +220,7 @@ fun SettingsScreen(
                     },
                     checked = notificationEnabled,
                     onCheckedChange = { enabled ->
-                        viewModel.updateNotificationEnabled(enabled)
+                        settingsViewModel.updateNotificationEnabled(enabled)
                         if (enabled) {
                             showTimePickerDialog = true
                         }
@@ -266,7 +276,7 @@ fun SettingsScreen(
                         },
                         trailingIcon = {
                             Icon(
-                                Icons.Default.Logout,
+                                Icons.Default.ExitToApp,
                                 contentDescription = "Sign Out",
                                 modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.error
@@ -325,7 +335,7 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.updateDisplayName(editDisplayName.trim())
+                        settingsViewModel.updateDisplayName(editDisplayName.trim())
                     }
                 ) {
                     Text("Save")
@@ -345,7 +355,7 @@ fun SettingsScreen(
         TimePickerDialog(
             context,
             { _, hour, minute ->
-                viewModel.updateNotificationTime(hour, minute)
+                        settingsViewModel.updateNotificationTime(hour, minute)
                 showTimePickerDialog = false
             },
             notificationHour,
@@ -363,7 +373,7 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.signOut()
+                        settingsViewModel.signOut()
                         showLogoutDialog = false
                     },
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(

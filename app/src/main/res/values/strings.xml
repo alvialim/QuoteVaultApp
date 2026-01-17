@@ -145,6 +145,8 @@
     <string name="notification_daily_quote_title">Daily Quote</string>
     <string name="notification_daily_quote_channel_name">Daily Quotes</string>
     <string name="notification_daily_quote_channel_description">Notifications for your daily inspirational quotes</string>
+    <string name="daily_quote_notification_title">Your Daily Quote</string>
+    <string name="daily_quote_notification_channel_name">Daily Quote</string>
     
     <!-- Actions -->
     <string name="action_share">Share</string>

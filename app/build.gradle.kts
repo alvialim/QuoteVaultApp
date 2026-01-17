@@ -6,15 +6,11 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.hilt.android)
-    kotlin("kapt")
 }
 
 android {
     namespace = "com.example.quotevaultapp"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     // Load local.properties for API keys
     val localProperties = Properties()
@@ -25,13 +21,13 @@ android {
 
     defaultConfig {
         applicationId = "com.example.quotevaultapp"
-        minSdk = 29
-        targetSdk = 36
+        minSdk = 26
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
+        
         // Supabase configuration from local.properties
         buildConfigField(
             "String",
@@ -54,90 +50,81 @@ android {
             )
         }
     }
+    
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+    
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
-    kapt {
-        correctErrorTypes = true
-        useBuildCache = true
-    }
+    
     buildFeatures {
         compose = true
         buildConfig = true
     }
-    composeCompiler {
-        // Strong skipping mode is enabled by default in newer Compose compiler versions
-        includeSourceInformation = true
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-}
-
-configurations.all {
-    exclude(group = "io.github.jan-tennert.supabase", module = "postgrest-kt-android-debug")
-    exclude(group = "io.github.jan-tennert.supabase", module = "gotrue-kt-android-debug")
-    exclude(group = "io.github.jan-tennert.supabase", module = "realtime-kt-android-debug")
 }
 
 dependencies {
-    // AndroidX Core
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
+    // Core Android
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.activity:activity-compose:1.8.2")
     
-    // Jetpack Compose
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
+    // Splash Screen
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Compose
+    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.7")
     
     // Accompanist
-    implementation(libs.accompanist.systemuicontroller)
-    
-    // Image Loading
-    implementation(libs.coil.compose)
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
     
     // Supabase
-    implementation(libs.supabase.postgrest)
-    implementation(libs.supabase.auth)
-    implementation(libs.supabase.realtime)
-    implementation(libs.ktor.client.android)
-    implementation(libs.kotlinx.serialization.json)
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:2.4.1")
+    implementation("io.github.jan-tennert.supabase:gotrue-kt:2.4.1")
+    implementation("io.github.jan-tennert.supabase:realtime-kt:2.4.1")
     
-    // Hilt Dependency Injection
-    implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
+    // Ktor
+    implementation("io.ktor:ktor-client-android:2.3.7")
+    implementation("io.ktor:ktor-client-core:2.3.7")
+    implementation("io.ktor:ktor-utils:2.3.7")
+    
+    // Coil
+    implementation("io.coil-kt:coil-compose:2.5.0")
     
     // DataStore
-    implementation(libs.androidx.datastore.preferences)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
     
     // WorkManager
-    implementation(libs.androidx.work.runtime.ktx)
-    implementation("androidx.hilt:hilt-work:1.2.0")
-    kapt("androidx.hilt:hilt-compiler:1.2.0")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    
+    // Glance Widgets
+    implementation("androidx.glance:glance:1.0.0")
+    implementation("androidx.glance:glance-appwidget:1.0.0")
+    implementation("androidx.glance:glance-material3:1.0.0")
     
     // Coroutines
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.core)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    
+    // Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     
     // Testing
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

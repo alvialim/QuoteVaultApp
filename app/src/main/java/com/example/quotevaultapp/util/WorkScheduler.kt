@@ -1,94 +1,46 @@
 package com.example.quotevaultapp.util
 
 import android.content.Context
-import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import com.example.quotevaultapp.workers.DailyQuoteWorker
-import java.util.Calendar
-import java.util.concurrent.TimeUnit
 
 /**
- * Helper class for scheduling daily quote notifications
+ * WorkScheduler - TEMPORARILY DISABLED (requires DailyQuoteWorker which is commented out)
+ * 
+ * This utility is disabled because it references DailyQuoteWorker.
+ * To re-enable:
+ * 1. Uncomment DailyQuoteWorker.kt
+ * 2. Re-implement the methods below
+ * 3. Update DailyQuoteWorker to not use Hilt
  */
 object WorkScheduler {
     
     /**
-     * Default time for daily quote (9:00 AM)
-     */
-    private const val DEFAULT_HOUR = 9
-    private const val DEFAULT_MINUTE = 0
-    
-    /**
      * Schedule daily quote notification at specified time
-     * 
-     * @param context Application context
-     * @param hour Hour of day (0-23)
-     * @param minute Minute of hour (0-59)
+     * TEMPORARILY DISABLED - No-op until DailyQuoteWorker is re-enabled
      */
     fun scheduleDailyQuoteNotification(
         context: Context,
-        hour: Int = DEFAULT_HOUR,
-        minute: Int = DEFAULT_MINUTE
+        hour: Int = 9,
+        minute: Int = 0
     ) {
-        val workManager = WorkManager.getInstance(context)
-        
-        // Calculate initial delay to next scheduled time
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            
-            // If the time has already passed today, schedule for tomorrow
-            if (timeInMillis <= System.currentTimeMillis()) {
-                add(Calendar.DAY_OF_YEAR, 1)
-            }
-        }
-        
-        val initialDelay = calendar.timeInMillis - System.currentTimeMillis()
-        
-        // Constraints: Requires network (for fetching quote)
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-        
-        // Create periodic work request (runs once per day)
-        val dailyQuoteWork = PeriodicWorkRequestBuilder<DailyQuoteWorker>(
-            1, TimeUnit.DAYS // Repeat interval
-        )
-            .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-            .setConstraints(constraints)
-            .build()
-        
-        // Enqueue unique work (replaces existing if already scheduled)
-        workManager.enqueueUniquePeriodicWork(
-            DailyQuoteWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.UPDATE,
-            dailyQuoteWork
-        )
+        // TODO: Re-enable when DailyQuoteWorker is uncommented
+        // For now, this is a no-op to prevent compilation errors
     }
     
     /**
      * Cancel daily quote notifications
+     * TEMPORARILY DISABLED - No-op until DailyQuoteWorker is re-enabled
      */
     fun cancelDailyQuoteNotification(context: Context) {
-        WorkManager.getInstance(context)
-            .cancelUniqueWork(DailyQuoteWorker.WORK_NAME)
+        // TODO: Re-enable when DailyQuoteWorker is uncommented
+        // For now, this is a no-op to prevent compilation errors
     }
     
     /**
      * Check if daily quote notification is scheduled
+     * TEMPORARILY DISABLED - Returns false until DailyQuoteWorker is re-enabled
      */
     suspend fun isScheduled(context: Context): Boolean {
-        val workManager = WorkManager.getInstance(context)
-        val workInfos = workManager.getWorkInfosForUniqueWork(DailyQuoteWorker.WORK_NAME)
-        
-        return workInfos.get().any { workInfo ->
-            workInfo.state == androidx.work.WorkInfo.State.ENQUEUED ||
-            workInfo.state == androidx.work.WorkInfo.State.RUNNING
-        }
+        // TODO: Re-enable when DailyQuoteWorker is uncommented
+        return false
     }
 }

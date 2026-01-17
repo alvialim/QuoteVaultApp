@@ -1,6 +1,8 @@
 package com.example.quotevaultapp.presentation.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 
 // ============================================================================
 // LIGHT COLOR SCHEME
@@ -99,9 +101,6 @@ val GeneralAccent = Color(0xFF2196F3) // Blue
 // ============================================================================
 // MATERIAL 3 COLOR SCHEMES
 // ============================================================================
-
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 
 val LightColorScheme = lightColorScheme(
     primary = LightPrimary,

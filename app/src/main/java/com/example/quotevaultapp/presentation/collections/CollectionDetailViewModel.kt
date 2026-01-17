@@ -6,12 +6,14 @@ import com.example.quotevaultapp.domain.model.Collection
 import com.example.quotevaultapp.domain.model.Quote
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.repository.CollectionRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.quotevaultapp.domain.repository.QuoteRepository
+import com.example.quotevaultapp.data.remote.supabase.SupabaseCollectionRepository
+import com.example.quotevaultapp.data.remote.supabase.SupabaseQuoteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.coroutines.delay
 
 /**
  * Sealed class representing the collection detail screen UI state
@@ -27,9 +29,9 @@ sealed class CollectionDetailUiState {
  * ViewModel for Collection Detail screen
  * Manages collection details, quotes in collection, and collection operations
  */
-@HiltViewModel
-class CollectionDetailViewModel @Inject constructor(
-    private val collectionRepository: CollectionRepository
+class CollectionDetailViewModel(
+    private val collectionRepository: CollectionRepository = SupabaseCollectionRepository(),
+    private val quoteRepository: QuoteRepository = SupabaseQuoteRepository()
 ) : ViewModel() {
     
     // Collection data
@@ -57,6 +59,16 @@ class CollectionDetailViewModel @Inject constructor(
     
     private val _showAddQuoteDialog = MutableStateFlow(false)
     val showAddQuoteDialog: StateFlow<Boolean> = _showAddQuoteDialog.asStateFlow()
+    
+    // Quotes for add quote dialog
+    private val _availableQuotes = MutableStateFlow<List<Quote>>(emptyList())
+    val availableQuotes: StateFlow<List<Quote>> = _availableQuotes.asStateFlow()
+    
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    
+    private val _isLoadingQuotes = MutableStateFlow(false)
+    val isLoadingQuotes: StateFlow<Boolean> = _isLoadingQuotes.asStateFlow()
     
     // Expose error and loading for convenience
     val error: String?
@@ -257,6 +269,113 @@ class CollectionDetailViewModel @Inject constructor(
      */
     fun showAddQuoteSearch() {
         _showAddQuoteDialog.value = true
+        _searchQuery.value = ""
+        _availableQuotes.value = emptyList() // Clear previous results
+        loadAvailableQuotes()
+    }
+    
+    /**
+     * Load available quotes for adding to collection
+     */
+    fun loadAvailableQuotes() {
+        viewModelScope.launch {
+            _isLoadingQuotes.value = true
+            val result = quoteRepository.getQuotes(1, 100) // Load first 100 quotes
+            when (result) {
+                is Result.Success -> {
+                    // Filter out quotes already in collection
+                    val collectionId = currentCollectionId ?: _collection.value?.id
+                    if (collectionId != null) {
+                        val collectionQuotes = collectionRepository.getCollectionQuotes(collectionId)
+                        if (collectionQuotes is Result.Success) {
+                            val existingQuoteIds = collectionQuotes.data.map { it.id }.toSet()
+                            _availableQuotes.value = result.data.filter { it.id !in existingQuoteIds }
+                        } else {
+                            _availableQuotes.value = result.data
+                        }
+                    } else {
+                        _availableQuotes.value = result.data
+                    }
+                }
+                is Result.Error -> {
+                    _availableQuotes.value = emptyList()
+                }
+            }
+            _isLoadingQuotes.value = false
+        }
+    }
+    
+    /**
+     * Search quotes with debouncing to avoid too many API calls
+     */
+    fun searchQuotes(query: String) {
+        _searchQuery.value = query
+        
+        // Trigger debounced search automatically
+        viewModelScope.launch {
+            delay(500) // 500ms debounce
+            // Check again if the query matches (might have changed during delay)
+            val currentQuery = _searchQuery.value
+            if (currentQuery == query) {
+                android.util.Log.d("CollectionDetailViewModel", "Performing search for: $query")
+                performQuoteSearch(query)
+            }
+        }
+    }
+    
+    /**
+     * Internal method to perform the actual search
+     */
+    private fun performQuoteSearch(query: String) {
+        val trimmedQuery = query.trim()
+        
+        if (trimmedQuery.isBlank()) {
+            // If query is empty, reload all available quotes
+            android.util.Log.d("CollectionDetailViewModel", "Query is empty, loading all available quotes")
+            loadAvailableQuotes()
+            return
+        }
+        
+        viewModelScope.launch {
+            _isLoadingQuotes.value = true
+            android.util.Log.d("CollectionDetailViewModel", "Searching quotes with query: $trimmedQuery")
+            
+            // Use searchQuotesWithCategory if available (from SupabaseQuoteRepository)
+            val repository = quoteRepository as? SupabaseQuoteRepository
+            val result = if (repository != null) {
+                // Search without category filter for add quote dialog
+                repository.searchQuotesWithCategory(trimmedQuery, null)
+            } else {
+                quoteRepository.searchQuotes(trimmedQuery)
+            }
+            
+            when (result) {
+                is Result.Success -> {
+                    android.util.Log.d("CollectionDetailViewModel", "Search returned ${result.data.size} quotes")
+                    
+                    // Filter out quotes already in collection
+                    val collectionId = currentCollectionId ?: _collection.value?.id
+                    if (collectionId != null) {
+                        val collectionQuotesResult = collectionRepository.getCollectionQuotes(collectionId)
+                        if (collectionQuotesResult is Result.Success) {
+                            val existingQuoteIds = collectionQuotesResult.data.map { it.id }.toSet()
+                            val filteredQuotes = result.data.filter { it.id !in existingQuoteIds }
+                            android.util.Log.d("CollectionDetailViewModel", "After filtering collection quotes: ${filteredQuotes.size} quotes")
+                            _availableQuotes.value = filteredQuotes
+                        } else {
+                            _availableQuotes.value = result.data
+                        }
+                    } else {
+                        _availableQuotes.value = result.data
+                    }
+                }
+                is Result.Error -> {
+                    android.util.Log.e("CollectionDetailViewModel", "Error searching quotes: ${result.exception.message}", result.exception)
+                    _availableQuotes.value = emptyList()
+                }
+            }
+            _isLoadingQuotes.value = false
+        }
     }
     
     /**

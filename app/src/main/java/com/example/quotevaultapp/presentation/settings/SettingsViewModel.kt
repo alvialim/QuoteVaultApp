@@ -5,7 +5,10 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.quotevaultapp.domain.model.AppTheme
@@ -13,10 +16,12 @@ import com.example.quotevaultapp.domain.model.FontSize
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.model.User
 import com.example.quotevaultapp.domain.repository.AuthRepository
+import com.example.quotevaultapp.data.remote.supabase.SupabaseAuthRepository
 import com.example.quotevaultapp.util.PreferencesKeys
 import com.example.quotevaultapp.util.WorkScheduler
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,17 +29,28 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+
+/**
+ * DataStore extension property for preferences
+ */
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "settings",
+    corruptionHandler = ReplaceFileCorruptionHandler(
+        produceNewData = { emptyPreferences() }
+    ),
+    scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+)
 
 /**
  * ViewModel for Settings screen
  */
-@HiltViewModel
-class SettingsViewModel @Inject constructor(
-    private val dataStore: DataStore<Preferences>,
-    private val authRepository: AuthRepository,
-    @ApplicationContext private val context: Context
+class SettingsViewModel(
+    context: Context,
+    private val authRepository: AuthRepository = SupabaseAuthRepository()
 ) : ViewModel() {
+    
+    private val dataStore: DataStore<Preferences> = context.dataStore
+    private val context: Context = context.applicationContext
     
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()

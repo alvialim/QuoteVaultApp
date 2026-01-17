@@ -11,10 +11,7 @@ import com.example.quotevaultapp.MainActivity
 import com.example.quotevaultapp.R
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.repository.QuoteRepository
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
+import com.example.quotevaultapp.data.remote.supabase.SupabaseQuoteRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,12 +21,6 @@ import kotlinx.coroutines.launch
  * App Widget Provider for displaying quote of the day on home screen
  */
 class QuoteWidget : AppWidgetProvider() {
-    
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface QuoteWidgetEntryPoint {
-        fun quoteRepository(): QuoteRepository
-    }
     
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
@@ -80,12 +71,8 @@ class QuoteWidget : AppWidgetProvider() {
         )
         views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
         
-        // Get repository via Hilt EntryPoint
-        val entryPoint = EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            QuoteWidgetEntryPoint::class.java
-        )
-        val quoteRepository = entryPoint.quoteRepository()
+        // Create repository instance directly (without Hilt)
+        val quoteRepository: QuoteRepository = SupabaseQuoteRepository()
         
         // Fetch quote of the day
         scope.launch {

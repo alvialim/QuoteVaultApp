@@ -3,7 +3,9 @@ package com.example.quotevaultapp.presentation.auth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,27 +59,47 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit = {},
     onNavigateToSignUp: () -> Unit = {},
     onNavigateToForgotPassword: () -> Unit = {},
-    viewModel: AuthViewModel? = null
+    viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
+    // Observe ViewModel state
+    val emailState by viewModel.email.collectAsState()
+    val passwordState by viewModel.password.collectAsState()
+    val loginState by viewModel.loginState.collectAsState()
+    
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     
-    // Validate form
-    val isEmailValid = email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    val isPasswordValid = password.isNotBlank() && password.length >= 6
+    // Derive UI state from ViewModel
+    val isLoading = loginState is LoginState.Loading
+    val errorMessage = (loginState as? LoginState.Error)?.message
+    
+    // Compute form validity from observed state (ensures recomposition when fields change)
+    val isEmailValid = emailState.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(emailState).matches()
+    val isPasswordValid = passwordState.isNotBlank() && passwordState.length >= 6
     val isFormValid = isEmailValid && isPasswordValid
     
-    // Handle login result
-    LaunchedEffect(Unit) {
-        // Observe auth state changes if viewModel is provided
-        // This would be handled by the ViewModel in a real implementation
+    // Handle login result and navigation
+    LaunchedEffect(loginState) {
+        when (val state = loginState) {
+            is LoginState.Success -> {
+                android.util.Log.d("LoginScreen", "Login successful, navigating to home")
+                onLoginSuccess()
+            }
+            is LoginState.Error -> {
+                val errorMsg = state.message
+                android.util.Log.e("LoginScreen", "Login error: $errorMsg")
+                scope.launch {
+                    snackbarHostState.showSnackbar(errorMsg)
+                }
+            }
+            is LoginState.Loading -> {
+                android.util.Log.d("LoginScreen", "Login in progress...")
+            }
+            else -> {}
+        }
     }
     
     Scaffold(
@@ -116,10 +139,9 @@ fun LoginScreen(
                 
                 // Email Field
                 OutlinedTextField(
-                    value = email,
+                    value = emailState,
                     onValueChange = { 
-                        email = it
-                        errorMessage = null
+                        viewModel.onEmailChange(it)
                     },
                     label = { Text("Email") },
                     placeholder = { Text("Enter your email") },
@@ -137,10 +159,8 @@ fun LoginScreen(
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                     ),
-                    isError = email.isNotBlank() && !isEmailValid,
-                    supportingText = if (email.isNotBlank() && !isEmailValid) {
-                        { Text("Please enter a valid email address") }
-                    } else null,
+                    isError = emailState.isNotBlank() && viewModel.emailError != null,
+                    supportingText = viewModel.emailError?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -148,10 +168,9 @@ fun LoginScreen(
                 
                 // Password Field
                 OutlinedTextField(
-                    value = password,
+                    value = passwordState,
                     onValueChange = { 
-                        password = it
-                        errorMessage = null
+                        viewModel.onPasswordChange(it)
                     },
                     label = { Text("Password") },
                     placeholder = { Text("Enter your password") },
@@ -184,20 +203,14 @@ fun LoginScreen(
                     keyboardActions = KeyboardActions(
                         onDone = {
                             if (isFormValid && !isLoading) {
-                                // Perform login
-                                handleLogin(email, password, viewModel) {
-                                    isLoading = true
-                                    errorMessage = null
-                                }
+                                viewModel.onLoginClick()
                             } else {
                                 focusManager.clearFocus()
                             }
                         }
                     ),
-                    isError = password.isNotBlank() && !isPasswordValid,
-                    supportingText = if (password.isNotBlank() && !isPasswordValid) {
-                        { Text("Password must be at least 6 characters") }
-                    } else null,
+                    isError = passwordState.isNotBlank() && viewModel.passwordError != null,
+                    supportingText = viewModel.passwordError?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -227,10 +240,7 @@ fun LoginScreen(
                 // Login Button
                 Button(
                     onClick = {
-                        handleLogin(email, password, viewModel) {
-                            isLoading = true
-                            errorMessage = null
-                        }
+                        viewModel.onLoginClick()
                     },
                     enabled = isFormValid && !isLoading,
                     modifier = Modifier
@@ -273,16 +283,3 @@ fun LoginScreen(
     }
 }
 
-/**
- * Handle login logic (placeholder - should be handled by ViewModel)
- */
-private fun handleLogin(
-    email: String,
-    password: String,
-    viewModel: AuthViewModel?,
-    onLoading: () -> Unit
-) {
-    // This would be handled by ViewModel in a real implementation
-    // For now, this is a placeholder
-    onLoading()
-}

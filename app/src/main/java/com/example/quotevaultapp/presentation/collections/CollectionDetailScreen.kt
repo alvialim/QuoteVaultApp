@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,9 +26,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -39,11 +42,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pullrefresh.PullRefreshIndicator
-import androidx.compose.material3.pullrefresh.pullRefresh
-import androidx.compose.material3.pullrefresh.rememberPullRefreshState
+// TEMPORARILY COMMENTED OUT - Pull to refresh will be re-enabled later
+// import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+// import androidx.compose.material3.pulltorefresh.pulltorefresh
+// import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+// import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,9 +63,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quotevaultapp.domain.model.FontSize
 import com.example.quotevaultapp.domain.model.Quote
 import com.example.quotevaultapp.presentation.components.EmptyState
@@ -84,7 +91,7 @@ import kotlin.math.roundToInt
 fun CollectionDetailScreen(
     collectionId: String,
     collection: com.example.quotevaultapp.domain.model.Collection? = null,
-    viewModel: CollectionDetailViewModel = hiltViewModel(),
+    viewModel: CollectionDetailViewModel = viewModel(),
     onQuoteClick: ((Quote) -> Unit)? = null,
     onShareClick: (Quote) -> Unit = {},
     onBack: () -> Unit = {},
@@ -105,26 +112,45 @@ fun CollectionDetailScreen(
     val showEditDialog by viewModel.showEditDialog.collectAsState()
     val showDeleteDialog by viewModel.showDeleteDialog.collectAsState()
     val showAddQuoteDialog by viewModel.showAddQuoteDialog.collectAsState()
+    val availableQuotes by viewModel.availableQuotes.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isLoadingQuotes by viewModel.isLoadingQuotes.collectAsState()
     
     var showMenu by remember { mutableStateOf(false) }
     
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = isRefreshing,
-        onRefresh = { viewModel.refreshCollection() }
-    )
+    // TEMPORARILY COMMENTED OUT - Pull to refresh will be re-enabled later
+    // val pullToRefreshState = rememberPullToRefreshState()
+    // 
+    // // Sync pull-to-refresh state with ViewModel
+    // LaunchedEffect(pullToRefreshState.isRefreshing) {
+    //     if (pullToRefreshState.isRefreshing && !isRefreshing) {
+    //         viewModel.refreshCollection()
+    //     }
+    //     if (!pullToRefreshState.isRefreshing && isRefreshing) {
+    //         pullToRefreshState.endRefresh()
+    //     }
+    // }
+    // 
+    // LaunchedEffect(isRefreshing) {
+    //     if (isRefreshing && !pullToRefreshState.isRefreshing) {
+    //         pullToRefreshState.startRefresh()
+    //     }
+    // }
     
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
+                        val currentCollection = collection
                         Text(
-                            text = collection?.name ?: "Collection",
+                            text = currentCollection?.name ?: "Collection",
                             style = MaterialTheme.typography.titleLarge
                         )
-                        if (collection?.description != null && collection.description.isNotBlank()) {
+                        val description = currentCollection?.description
+                        if (description != null && description.isNotBlank()) {
                             Text(
-                                text = collection.description,
+                                text = description,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
@@ -134,7 +160,7 @@ fun CollectionDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -142,7 +168,7 @@ fun CollectionDetailScreen(
                 actions = {
                     IconButton(onClick = { viewModel.showEditCollection() }) {
                         Icon(
-                            imageVector = Icons.Default.Edit,
+                            imageVector = Icons.Filled.Edit,
                             contentDescription = "Edit collection"
                         )
                     }
@@ -158,7 +184,7 @@ fun CollectionDetailScreen(
                             },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.Delete,
+                                    imageVector = Icons.Filled.Delete,
                                     contentDescription = null
                                 )
                             },
@@ -169,7 +195,7 @@ fun CollectionDetailScreen(
                     }
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
-                            imageVector = Icons.Default.MoreVert,
+                            imageVector = Icons.Filled.MoreVert,
                             contentDescription = "More options"
                         )
                     }
@@ -186,7 +212,7 @@ fun CollectionDetailScreen(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = Icons.Filled.Add,
                     contentDescription = "Add quote to collection"
                 )
             }
@@ -198,19 +224,19 @@ fun CollectionDetailScreen(
                 .padding(paddingValues)
         ) {
             when {
-                uiState.isLoading && quotes.isEmpty() -> {
+                viewModel.isLoading && quotes.isEmpty() -> {
                     LoadingIndicator()
                 }
-                uiState.error != null && quotes.isEmpty() -> {
+                viewModel.error != null && quotes.isEmpty() -> {
                     ErrorState(
-                        message = uiState.error ?: "Failed to load collection",
+                        message = viewModel.error ?: "Failed to load collection",
                         onRetry = { viewModel.loadCollection(collectionId) },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                quotes.isEmpty() && !uiState.isLoading -> {
+                quotes.isEmpty() && !viewModel.isLoading -> {
                     EmptyState(
-                        icon = Icons.Default.Add,
+                        icon = Icons.Filled.Add,
                         title = "No quotes in collection",
                         subtitle = "Add quotes to get started",
                         actionButtonText = "Add Quote",
@@ -222,7 +248,7 @@ fun CollectionDetailScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .pullRefresh(pullRefreshState)
+                            // .pulltorefresh(pullToRefreshState) // TEMPORARILY COMMENTED OUT
                     ) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -244,11 +270,11 @@ fun CollectionDetailScreen(
                             }
                         }
                         
-                        PullRefreshIndicator(
-                            refreshing = isRefreshing,
-                            state = pullRefreshState,
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        )
+                        // TEMPORARILY COMMENTED OUT - Pull to refresh will be re-enabled later
+                        // PullToRefreshContainer(
+                        //     state = pullToRefreshState,
+                        //     modifier = Modifier.align(Alignment.TopCenter)
+                        // )
                     }
                 }
             }
@@ -281,8 +307,11 @@ fun CollectionDetailScreen(
     // Add Quote Search Dialog
     if (showAddQuoteDialog) {
         AddQuoteSearchDialog(
-            collectionId = collectionId,
+            availableQuotes = availableQuotes,
+            searchQuery = searchQuery,
+            isLoadingQuotes = isLoadingQuotes,
             onDismiss = { viewModel.hideAddQuoteDialog() },
+            onSearchQueryChange = { viewModel.searchQuotes(it) },
             onQuoteSelected = { quoteId ->
                 viewModel.addQuote(quoteId)
             }
@@ -327,7 +356,7 @@ private fun SwipeableQuoteCard(
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Filled.Delete,
                     contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.size(24.dp)
@@ -432,7 +461,7 @@ private fun DeleteCollectionDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                colors = androidx.compose.material3.TextButtonDefaults.textButtonColors(
+                colors = ButtonDefaults.textButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
@@ -448,24 +477,126 @@ private fun DeleteCollectionDialog(
 }
 
 /**
- * Add quote search dialog (placeholder - would need full search implementation)
+ * Add quote search dialog - allows searching and selecting quotes to add to collection
  */
 @Composable
 private fun AddQuoteSearchDialog(
-    collectionId: String,
+    availableQuotes: List<Quote>,
+    searchQuery: String,
+    isLoadingQuotes: Boolean,
     onDismiss: () -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     onQuoteSelected: (String) -> Unit
 ) {
-    // This would be a full search dialog implementation
-    // For now, just a placeholder
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Quote") },
-        text = { Text("Search and select quotes to add to collection") },
+        title = { Text("Add Quote to Collection") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+            ) {
+                // Search field
+                androidx.compose.material3.OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    label = { Text("Search quotes...") },
+                    placeholder = { Text("Search by text or author") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = "Search"
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            androidx.compose.material3.IconButton(
+                                onClick = { onSearchQueryChange("") }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Clear,
+                                    contentDescription = "Clear search"
+                                )
+                            }
+                        }
+                    }
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Quotes list
+                when {
+                    isLoadingQuotes -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            LoadingIndicator()
+                        }
+                    }
+                    availableQuotes.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (searchQuery.isBlank()) "No quotes available" else "No quotes found",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            items(
+                                items = availableQuotes,
+                                key = { it.id }
+                            ) { quote ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                        .clickable {
+                                            onQuoteSelected(quote.id)
+                                        }
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp)
+                                    ) {
+                                        Text(
+                                            text = quote.text,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "— ${quote.author}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("Done")
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }

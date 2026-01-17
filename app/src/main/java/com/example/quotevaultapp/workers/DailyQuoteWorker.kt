@@ -1,25 +1,34 @@
 package com.example.quotevaultapp.workers
 
+/**
+ * DailyQuoteWorker - TEMPORARILY DISABLED (requires Hilt)
+ * 
+ * This worker is disabled because it uses @HiltWorker annotation.
+ * To re-enable:
+ * 1. Re-add Hilt dependencies
+ * 2. Uncomment the code below
+ * 3. Update QuoteVaultApplication to use HiltWorkerFactory
+ */
+
+/*
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.repository.QuoteRepository
+import com.example.quotevaultapp.data.remote.supabase.SupabaseQuoteRepository
 import com.example.quotevaultapp.util.NotificationHelper
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 
 /**
  * WorkManager worker that fetches quote of the day and shows notification
  * Runs daily at the user's preferred time
  */
-@HiltWorker
-class DailyQuoteWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
-    private val quoteRepository: QuoteRepository
+class DailyQuoteWorker(
+    context: Context,
+    params: WorkerParameters
 ) : CoroutineWorker(context, params) {
+    
+    private val quoteRepository: QuoteRepository = SupabaseQuoteRepository()
     
     override suspend fun doWork(): Result {
         return try {
@@ -69,3 +78,4 @@ class DailyQuoteWorker @AssistedInject constructor(
         const val WORK_NAME = "daily_quote_work"
     }
 }
+*/

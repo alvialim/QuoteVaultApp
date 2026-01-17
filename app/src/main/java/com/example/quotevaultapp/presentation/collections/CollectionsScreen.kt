@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,15 +34,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quotevaultapp.domain.model.Collection
 import com.example.quotevaultapp.presentation.components.EmptyState
 import com.example.quotevaultapp.presentation.components.ErrorState
@@ -55,14 +60,20 @@ import com.example.quotevaultapp.presentation.theme.AppShapes
  * @param onCollectionClick Callback when a collection is tapped
  * @param onCreateCollection Callback when FAB is clicked
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionsScreen(
-    viewModel: CollectionsViewModel = hiltViewModel(),
-    onCollectionClick: (Collection) -> Unit = {},
-    onCreateCollection: () -> Unit = {}
+    viewModel: CollectionsViewModel = viewModel(),
+    onCollectionClick: (Collection) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val collections by viewModel.collections.collectAsState()
+    val showCreateDialog by viewModel.showCreateDialog.collectAsState()
+    
+    // Load collections when screen first appears
+    LaunchedEffect(Unit) {
+        viewModel.loadCollections()
+    }
     
     Scaffold(
         topBar = {
@@ -75,7 +86,7 @@ fun CollectionsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onCreateCollection,
+                onClick = { viewModel.showCreateDialog() },
                 shape = AppShapes.fab,
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
@@ -91,24 +102,27 @@ fun CollectionsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            val isLoading = viewModel.uiState.value is CollectionsUiState.Loading
+            val error = (viewModel.uiState.value as? CollectionsUiState.Error)?.message
+            
             when {
-                uiState.isLoading && collections.isEmpty() -> {
+                isLoading && collections.isEmpty() -> {
                     LoadingIndicator()
                 }
-                uiState.error != null && collections.isEmpty() -> {
+                error != null && collections.isEmpty() -> {
                     ErrorState(
-                        message = uiState.error ?: "Failed to load collections",
+                        message = error,
                         onRetry = { viewModel.loadCollections() },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
                 collections.isEmpty() -> {
                     EmptyState(
-                        icon = Icons.Default.Folder,
+                        icon = Icons.Filled.Folder,
                         title = "No collections yet",
                         subtitle = "Create your first collection to organize your favorite quotes",
                         actionButtonText = "Create Collection",
-                        onActionClick = onCreateCollection,
+                        onActionClick = { viewModel.showCreateDialog() },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -133,6 +147,68 @@ fun CollectionsScreen(
             }
         }
     }
+    
+    // Create Collection Dialog
+    if (showCreateDialog) {
+        CreateCollectionDialog(
+            onDismiss = { viewModel.hideCreateDialog() },
+            onSave = { name, description ->
+                viewModel.createCollection(name, description)
+            }
+        )
+    }
+}
+
+/**
+ * Create collection dialog
+ */
+@Composable
+private fun CreateCollectionDialog(
+    onDismiss: () -> Unit,
+    onSave: (String, String?) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Create Collection") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    placeholder = { Text("e.g., Morning Motivation, Work Quotes") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (Optional)") },
+                    placeholder = { Text("Add a description for this collection") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    onSave(name.trim(), description.takeIf { it.isNotBlank() })
+                },
+                enabled = name.isNotBlank()
+            ) {
+                Text("Create")
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 /**
@@ -172,7 +248,7 @@ private fun CollectionCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Folder,
+                    imageVector = Icons.Filled.Folder,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(24.dp)

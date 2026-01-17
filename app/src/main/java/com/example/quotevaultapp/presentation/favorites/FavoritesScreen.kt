@@ -22,26 +22,32 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.pullrefresh.PullRefreshIndicator
-import androidx.compose.material3.pullrefresh.pullRefresh
-import androidx.compose.material3.pullrefresh.rememberPullRefreshState
+// TEMPORARILY COMMENTED OUT - Pull to refresh will be re-enabled later
+// import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+// import androidx.compose.material3.pulltorefresh.pulltorefresh
+// import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
+// import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -59,7 +65,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quotevaultapp.domain.model.FontSize
 import com.example.quotevaultapp.domain.model.Quote
 import com.example.quotevaultapp.domain.model.QuoteCategory
@@ -80,7 +86,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
-    viewModel: FavoritesViewModel = hiltViewModel(),
+    viewModel: FavoritesViewModel = viewModel(),
     onQuoteClick: ((Quote) -> Unit)? = null,
     onShareClick: (Quote) -> Unit = {},
     fontSize: FontSize = FontSize.MEDIUM
@@ -92,13 +98,36 @@ fun FavoritesScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     
-    var isSearchActive by remember { mutableStateOf(false) }
+    // Load favorites when screen appears (cloud sync)
+    LaunchedEffect(Unit) {
+        viewModel.loadFavorites()
+    }
+    
     val listState = rememberLazyListState()
     
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = isRefreshing,
-        onRefresh = { viewModel.refreshFavorites() }
-    )
+    // Reload favorites when screen is first displayed
+    LaunchedEffect(Unit) {
+        viewModel.loadFavorites()
+    }
+    
+    // TEMPORARILY COMMENTED OUT - Pull to refresh will be re-enabled later
+    // val pullToRefreshState = rememberPullToRefreshState()
+    // 
+    // // Sync pull-to-refresh state with ViewModel
+    // LaunchedEffect(pullToRefreshState.isRefreshing) {
+    //     if (pullToRefreshState.isRefreshing && !isRefreshing) {
+    //         viewModel.refreshFavorites()
+    //     }
+    //     if (!pullToRefreshState.isRefreshing && isRefreshing) {
+    //         pullToRefreshState.endRefresh()
+    //     }
+    // }
+    // 
+    // LaunchedEffect(isRefreshing) {
+    //     if (isRefreshing && !pullToRefreshState.isRefreshing) {
+    //         pullToRefreshState.startRefresh()
+    //     }
+    // }
     
     // Filter favorites based on search and category
     val filteredFavorites = favorites.filter { quote ->
@@ -121,7 +150,7 @@ fun FavoritesScreen(
                         // Sync indicator
                         if (isSyncing) {
                             Icon(
-                                imageVector = Icons.Default.Sync,
+                                imageVector = Icons.Filled.Refresh,
                                 contentDescription = "Syncing",
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -143,13 +172,13 @@ fun FavoritesScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Search Bar
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { viewModel.onSearchQueryChange(it) },
-                    onSearch = { /* Search is handled reactively */ },
-                    active = isSearchActive,
-                    onActiveChange = { isSearchActive = it },
+                // Search Field (Simple TextField - doesn't expand to full screen)
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     placeholder = { Text("Search favorites...") },
                     leadingIcon = {
                         Icon(
@@ -157,30 +186,47 @@ fun FavoritesScreen(
                             contentDescription = "Search"
                         )
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    // Search suggestions would go here
-                }
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { 
+                                    viewModel.onSearchQueryChange("")
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Clear,
+                                    contentDescription = "Clear search"
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    colors = TextFieldDefaults.outlinedTextFieldColors()
+                )
                 
                 // Category Tabs (Horizontal Scroll)
-                Row(
+                LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // All category
-                    CategoryChip(
-                        category = null,
-                        label = "All",
-                        isSelected = selectedCategory == null,
-                        onClick = { viewModel.onCategorySelected(null) }
-                    )
+                    item {
+                        CategoryChip(
+                            category = null,
+                            label = "All",
+                            isSelected = selectedCategory == null,
+                            onClick = { viewModel.onCategorySelected(null) }
+                        )
+                    }
                     
                     // Other categories
-                    QuoteCategory.values().filter { it != QuoteCategory.GENERAL }.forEach { category ->
+                    items(
+                        items = QuoteCategory.values().filter { it != QuoteCategory.GENERAL },
+                        key = { it.name }
+                    ) { category ->
                         CategoryChip(
                             category = category,
                             label = getCategoryDisplayName(category),
@@ -190,75 +236,103 @@ fun FavoritesScreen(
                     }
                 }
                 
-                // Main Content with Pull to Refresh
+                // Main Content (Pull to Refresh temporarily disabled)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pullRefresh(pullRefreshState)
+                        // .pulltorefresh(pullToRefreshState) // TEMPORARILY COMMENTED OUT
                 ) {
-                    if (uiState.isLoading && favorites.isEmpty()) {
-                        // Initial Loading - Show Shimmer
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(5) {
-                                QuoteCardShimmer()
+                    // Determine current state
+                    val isInitialLoading = viewModel.isLoading && favorites.isEmpty()
+                    val isError = viewModel.error != null && favorites.isEmpty()
+                    val isEmpty = filteredFavorites.isEmpty() && !viewModel.isLoading && favorites.isEmpty()
+                    val isSearchEmpty = filteredFavorites.isEmpty() && !viewModel.isLoading && favorites.isNotEmpty() && searchQuery.isNotBlank()
+                    val isCategoryEmpty = filteredFavorites.isEmpty() && !viewModel.isLoading && favorites.isNotEmpty() && selectedCategory != null && searchQuery.isBlank()
+                    val hasFilteredResults = filteredFavorites.isNotEmpty()
+                    
+                    when {
+                        // Initial Loading State - Show Shimmer
+                        isInitialLoading -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(5) {
+                                    QuoteCardShimmer()
+                                }
                             }
                         }
-                    } else if (uiState.error != null && favorites.isEmpty()) {
-                        // Error State
-                        ErrorState(
-                            message = uiState.error ?: "Failed to load favorites",
-                            onRetry = { viewModel.loadFavorites() },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else if (filteredFavorites.isEmpty() && !uiState.isLoading) {
-                        // Empty State
-                        EmptyState(
-                            icon = Icons.Default.Favorite,
-                            title = if (searchQuery.isNotBlank() || selectedCategory != null) {
-                                "No matching favorites"
-                            } else {
-                                "No favorites yet"
-                            },
-                            subtitle = if (searchQuery.isNotBlank() || selectedCategory != null) {
-                                "Try adjusting your search or filters"
-                            } else {
-                                "Start favoriting quotes to see them here"
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        // Favorites List with Swipe to Delete
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(
-                                items = filteredFavorites,
-                                key = { it.id }
-                            ) { quote ->
-                                SwipeableQuoteCard(
-                                    quote = quote,
-                                    onDelete = { viewModel.removeFromFavorites(quote.id) },
-                                    onFavoriteClick = { viewModel.toggleFavorite(quote.id) },
-                                    onShareClick = { onShareClick(quote) },
-                                    onClick = onQuoteClick,
-                                    fontSize = fontSize
-                                )
+                        
+                        // Error State - Show Error Message with Retry
+                        isError -> {
+                            ErrorState(
+                                message = viewModel.error ?: "Failed to load favorites",
+                                onRetry = { viewModel.loadFavorites() },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        
+                        // Empty State - No Favorites at All
+                        isEmpty -> {
+                            EmptyState(
+                                icon = Icons.Default.Favorite,
+                                title = "No favorites yet",
+                                subtitle = "Start favoriting quotes to see them here",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        
+                        // Empty State - Search Results
+                        isSearchEmpty -> {
+                            EmptyState(
+                                icon = Icons.Default.Favorite,
+                                title = "No matching favorites",
+                                subtitle = "Try searching with different keywords",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        
+                        // Empty State - Category Filter
+                        isCategoryEmpty -> {
+                            EmptyState(
+                                icon = Icons.Default.Favorite,
+                                title = "No favorites in this category",
+                                subtitle = "Try selecting a different category or add quotes to this category",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        
+                        // Content State - Show Favorites
+                        hasFilteredResults -> {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(
+                                    items = filteredFavorites,
+                                    key = { it.id }
+                                ) { quote ->
+                                    SwipeableQuoteCard(
+                                        quote = quote,
+                                        onDelete = { viewModel.removeFromFavorites(quote.id) },
+                                        onFavoriteClick = { viewModel.toggleFavorite(quote.id) },
+                                        onShareClick = { onShareClick(quote) },
+                                        onClick = onQuoteClick,
+                                        fontSize = fontSize
+                                    )
+                                }
                             }
                         }
                     }
                     
-                    PullRefreshIndicator(
-                        refreshing = isRefreshing,
-                        state = pullRefreshState,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
+                    // TEMPORARILY COMMENTED OUT - Pull to refresh will be re-enabled later
+                    // PullToRefreshContainer(
+                    //     state = pullToRefreshState,
+                    //     modifier = Modifier.align(Alignment.TopCenter)
+                    // )
                 }
             }
         }

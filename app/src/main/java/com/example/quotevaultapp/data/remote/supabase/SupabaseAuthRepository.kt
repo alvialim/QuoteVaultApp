@@ -12,6 +12,9 @@ import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.realtime
 import com.example.quotevaultapp.BuildConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,46 +47,82 @@ class SupabaseAuthRepository : AuthRepository {
     private val authStateFlow = MutableStateFlow<User?>(null)
     
     init {
-        // Initialize auth state
-        loadCurrentUser()
+        // Initialize auth state in a coroutine scope
+        CoroutineScope(Dispatchers.IO).launch {
+            loadCurrentUser()
+        }
     }
     
     override suspend fun signUp(email: String, password: String): Result<User> {
         return try {
-            val result = supabaseClient.auth.signUpWith(Email) {
+            android.util.Log.d("SupabaseAuthRepository", "Signing up with email: $email")
+            
+            supabaseClient.auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
             }
             
-            val user = result.user
-            if (user != null) {
-                val domainUser = mapToDomainUser(user)
+            android.util.Log.d("SupabaseAuthRepository", "Sign up completed, checking session...")
+            
+            // After sign up, get the current user from the session
+            val session = supabaseClient.auth.currentSessionOrNull()
+            android.util.Log.d("SupabaseAuthRepository", "Session after signup: $session")
+            
+            val userInfo = session?.user
+            android.util.Log.d("SupabaseAuthRepository", "UserInfo after signup: $userInfo")
+            
+            if (userInfo != null) {
+                val domainUser = mapToDomainUser(userInfo)
                 authStateFlow.value = domainUser
+                android.util.Log.d("SupabaseAuthRepository", "Sign up successful: ${domainUser.email}")
                 Result.Success(domainUser)
             } else {
-                Result.Error(Exception("User creation failed: No user returned"))
+                val error = Exception("User creation failed: No user returned. Please check if email confirmation is required.")
+                android.util.Log.e("SupabaseAuthRepository", "Sign up failed: ${error.message}", error)
+                Result.Error(error)
             }
         } catch (e: Exception) {
+            android.util.Log.e("SupabaseAuthRepository", "Sign up error: ${e.message}", e)
+            e.printStackTrace()
             Result.Error(e)
         }
     }
     
     override suspend fun signIn(email: String, password: String): Result<User> {
         return try {
-            val result = supabaseClient.auth.signInWith(Email) {
+            android.util.Log.d("SupabaseAuthRepository", "Signing in with email: $email")
+            
+            supabaseClient.auth.signInWith(Email) {
                 this.email = email
                 this.password = password
             }
             
-            val user = result.user
-            if (user != null) {
-                val domainUser = loadUserProfile(user.id)
+            android.util.Log.d("SupabaseAuthRepository", "Sign in completed, checking session...")
+            
+            // After sign in, get the current user from the session
+            val session = supabaseClient.auth.currentSessionOrNull()
+            android.util.Log.d("SupabaseAuthRepository", "Session after signin: $session")
+            
+            val userInfo = session?.user
+            android.util.Log.d("SupabaseAuthRepository", "UserInfo after signin: $userInfo")
+            
+            if (userInfo != null) {
+                val domainUser = try {
+                    loadUserProfile(userInfo.id)
+                } catch (e: Exception) {
+                    android.util.Log.w("SupabaseAuthRepository", "Failed to load profile, using auth user: ${e.message}")
+                    mapToDomainUser(userInfo)
+                }
                 authStateFlow.value = domainUser
+                android.util.Log.d("SupabaseAuthRepository", "Sign in successful: ${domainUser.email}")
                 Result.Success(domainUser)
             } else {
-                Result.Error(Exception("Sign in failed: No user returned"))
+                val error = Exception("Sign in failed: No user returned")
+                android.util.Log.e("SupabaseAuthRepository", "Sign in failed: ${error.message}", error)
+                Result.Error(error)
             }
         } catch (e: Exception) {
+            android.util.Log.e("SupabaseAuthRepository", "Sign in error: ${e.message}", e)
             Result.Error(e)
         }
     }
@@ -101,11 +140,11 @@ class SupabaseAuthRepository : AuthRepository {
     override suspend fun getCurrentUser(): Result<User?> {
         return try {
             val currentSession = supabaseClient.auth.currentSessionOrNull()
-            if (currentSession != null && currentSession.user != null) {
-                val user = loadUserProfile(currentSession.user.id)
+            currentSession?.user?.let { userInfo ->
+                val user = loadUserProfile(userInfo.id)
                 authStateFlow.value = user
                 Result.Success(user)
-            } else {
+            } ?: run {
                 authStateFlow.value = null
                 Result.Success(null)
             }
@@ -158,10 +197,10 @@ class SupabaseAuthRepository : AuthRepository {
     private suspend fun loadCurrentUser() {
         try {
             val currentSession = supabaseClient.auth.currentSessionOrNull()
-            if (currentSession != null && currentSession.user != null) {
-                val user = loadUserProfile(currentSession.user.id)
+            currentSession?.user?.let { userInfo ->
+                val user = loadUserProfile(userInfo.id)
                 authStateFlow.value = user
-            } else {
+            } ?: run {
                 authStateFlow.value = null
             }
         } catch (e: Exception) {

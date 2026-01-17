@@ -4,12 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.repository.AuthRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.quotevaultapp.data.remote.supabase.SupabaseAuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Sealed class representing the forgot password state
@@ -25,9 +24,8 @@ sealed class ForgotPasswordState {
  * ViewModel for Forgot Password screen
  * Manages email input and password reset functionality
  */
-@HiltViewModel
-class ForgotPasswordViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+class ForgotPasswordViewModel(
+    private val authRepository: AuthRepository = SupabaseAuthRepository()
 ) : ViewModel() {
     
     // Email input state

@@ -5,14 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.quotevaultapp.domain.model.Collection
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.repository.CollectionRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.quotevaultapp.data.remote.supabase.SupabaseCollectionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 /**
  * Sealed class representing the collections screen UI state
@@ -28,9 +28,8 @@ sealed class CollectionsUiState {
  * ViewModel for Collections screen
  * Manages user's collections list
  */
-@HiltViewModel
-class CollectionsViewModel @Inject constructor(
-    private val collectionRepository: CollectionRepository
+class CollectionsViewModel(
+    private val collectionRepository: CollectionRepository = SupabaseCollectionRepository()
 ) : ViewModel() {
     
     // Collections list (reactive from repository)
@@ -40,6 +39,10 @@ class CollectionsViewModel @Inject constructor(
     // UI State
     private val _uiState = MutableStateFlow<CollectionsUiState>(CollectionsUiState.Loading)
     val uiState: StateFlow<CollectionsUiState> = _uiState.asStateFlow()
+    
+    // Dialog state
+    private val _showCreateDialog = MutableStateFlow(false)
+    val showCreateDialog: StateFlow<Boolean> = _showCreateDialog.asStateFlow()
     
     // Expose error and loading for convenience
     val error: String?
@@ -76,7 +79,57 @@ class CollectionsViewModel @Inject constructor(
      */
     fun loadCollections() {
         _uiState.value = CollectionsUiState.Loading
-        // Collections are automatically updated via Flow observation
+        viewModelScope.launch {
+            // Force reload collections from repository
+            val repository = collectionRepository as? SupabaseCollectionRepository
+            if (repository != null) {
+                repository.reloadCollections()
+            }
+            // Collections are automatically updated via Flow observation
+        }
+    }
+    
+    /**
+     * Create a new collection
+     */
+    fun createCollection(name: String, description: String?) {
+        if (name.isBlank()) {
+            _uiState.value = CollectionsUiState.Error("Collection name cannot be empty")
+            return
+        }
+        
+        viewModelScope.launch {
+            _uiState.value = CollectionsUiState.Loading
+            
+            val result = collectionRepository.createCollection(name.trim(), description?.trim())
+            
+            when (result) {
+                is Result.Success -> {
+                    _uiState.value = CollectionsUiState.Success
+                    _showCreateDialog.value = false
+                    // Collections are automatically updated via Flow observation
+                }
+                is Result.Error -> {
+                    _uiState.value = CollectionsUiState.Error(
+                        result.exception.message ?: "Failed to create collection"
+                    )
+                }
+            }
+        }
+    }
+    
+    /**
+     * Show create collection dialog
+     */
+    fun showCreateDialog() {
+        _showCreateDialog.value = true
+    }
+    
+    /**
+     * Hide create collection dialog
+     */
+    fun hideCreateDialog() {
+        _showCreateDialog.value = false
     }
     
     /**

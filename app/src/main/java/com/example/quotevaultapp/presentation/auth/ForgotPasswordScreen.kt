@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 fun ForgotPasswordScreen(
     onBack: () -> Unit = {},
     onResetSent: () -> Unit = {},
-    viewModel: AuthViewModel? = null
+    viewModel: ForgotPasswordViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -240,7 +240,7 @@ fun ForgotPasswordScreen(
  */
 private fun handleSendReset(
     email: String,
-    viewModel: AuthViewModel?,
+    viewModel: ForgotPasswordViewModel,
     onLoading: () -> Unit
 ) {
     // This would be handled by ViewModel in a real implementation

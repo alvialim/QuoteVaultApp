@@ -16,6 +16,10 @@ local.properties
 
 # Supabase API Keys (sensitive)
 # Never commit API keys to version control
+# Note: local.properties is already excluded on line 3 and 15 above
+# Explicitly exclude all local.properties files at any depth
 **/local.properties
-*.properties
-!gradle.properties
+
+# Exclude specific .properties files only (avoid broad pattern to prevent accidental exclusions)
+# Using explicit patterns instead of *.properties to ensure gradle.properties is not excluded
+# gradle.properties should be tracked in version control

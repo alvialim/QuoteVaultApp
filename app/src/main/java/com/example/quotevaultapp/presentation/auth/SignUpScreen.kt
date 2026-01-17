@@ -29,9 +29,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,15 +50,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Password strength levels
- */
-enum class PasswordStrength {
-    WEAK,
-    MEDIUM,
-    STRONG
-}
-
-/**
  * Sign up screen for new user registration
  * 
  * @param onSignUpSuccess Callback when sign up is successful
@@ -64,27 +59,54 @@ enum class PasswordStrength {
 fun SignUpScreen(
     onSignUpSuccess: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
-    viewModel: AuthViewModel? = null
+    viewModel: SignUpViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var confirmPassword by rememberSaveable { mutableStateOf("") }
-    var displayName by rememberSaveable { mutableStateOf("") }
+    // Observe ViewModel state
+    val displayNameState by viewModel.displayName.collectAsState()
+    val emailState by viewModel.email.collectAsState()
+    val passwordState by viewModel.password.collectAsState()
+    val confirmPasswordState by viewModel.confirmPassword.collectAsState()
+    val signUpState by viewModel.signUpState.collectAsState()
+    
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
     
-    // Validation
-    val isEmailValid = email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    val passwordStrength = calculatePasswordStrength(password)
-    val isPasswordValid = password.isNotBlank() && password.length >= 6
-    val isConfirmPasswordValid = confirmPassword.isNotBlank() && password == confirmPassword
-    val isDisplayNameValid = displayName.isNotBlank() || displayName.isEmpty()
+    // Derive UI state from ViewModel
+    val isLoading = signUpState is SignUpState.Loading
+    val errorMessage = (signUpState as? SignUpState.Error)?.message
+    
+    // Compute form validity from observed state
+    val isEmailValid = emailState.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(emailState).matches()
+    val isPasswordValid = passwordState.isNotBlank() && passwordState.length >= 6
+    val isConfirmPasswordValid = confirmPasswordState.isNotBlank() && passwordState == confirmPasswordState
     val isFormValid = isEmailValid && isPasswordValid && isConfirmPasswordValid
+    
+    val passwordStrength = viewModel.passwordStrength
+    
+    // Handle sign up result and navigation
+    LaunchedEffect(signUpState) {
+        when (val state = signUpState) {
+            is SignUpState.Success -> {
+                android.util.Log.d("SignUpScreen", "Sign up successful, navigating to home")
+                onSignUpSuccess()
+            }
+            is SignUpState.Error -> {
+                val errorMsg = state.message
+                android.util.Log.e("SignUpScreen", "Sign up error: $errorMsg")
+                scope.launch {
+                    snackbarHostState.showSnackbar(errorMsg)
+                }
+            }
+            is SignUpState.Loading -> {
+                android.util.Log.d("SignUpScreen", "Sign up in progress...")
+            }
+            else -> {}
+        }
+    }
     
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -123,10 +145,9 @@ fun SignUpScreen(
                 
                 // Display Name Field (Optional)
                 OutlinedTextField(
-                    value = displayName,
+                    value = displayNameState,
                     onValueChange = { 
-                        displayName = it
-                        errorMessage = null
+                        viewModel.onDisplayNameChange(it)
                     },
                     label = { Text("Display Name (Optional)") },
                     placeholder = { Text("Enter your name") },
@@ -151,10 +172,9 @@ fun SignUpScreen(
                 
                 // Email Field
                 OutlinedTextField(
-                    value = email,
+                    value = emailState,
                     onValueChange = { 
-                        email = it
-                        errorMessage = null
+                        viewModel.onEmailChange(it)
                     },
                     label = { Text("Email") },
                     placeholder = { Text("Enter your email") },
@@ -172,10 +192,8 @@ fun SignUpScreen(
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                     ),
-                    isError = email.isNotBlank() && !isEmailValid,
-                    supportingText = if (email.isNotBlank() && !isEmailValid) {
-                        { Text("Please enter a valid email address") }
-                    } else null,
+                    isError = emailState.isNotBlank() && viewModel.emailError != null,
+                    supportingText = viewModel.emailError?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -183,10 +201,9 @@ fun SignUpScreen(
                 
                 // Password Field
                 OutlinedTextField(
-                    value = password,
+                    value = passwordState,
                     onValueChange = { 
-                        password = it
-                        errorMessage = null
+                        viewModel.onPasswordChange(it)
                     },
                     label = { Text("Password") },
                     placeholder = { Text("Create a password") },
@@ -219,15 +236,13 @@ fun SignUpScreen(
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
                     ),
-                    isError = password.isNotBlank() && !isPasswordValid,
-                    supportingText = if (password.isNotBlank() && !isPasswordValid) {
-                        { Text("Password must be at least 6 characters") }
-                    } else null,
+                    isError = passwordState.isNotBlank() && viewModel.passwordError != null,
+                    supportingText = viewModel.passwordError?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
                 // Password Strength Indicator
-                if (password.isNotBlank()) {
+                if (passwordState.isNotBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     PasswordStrengthIndicator(
                         strength = passwordStrength,
@@ -239,10 +254,9 @@ fun SignUpScreen(
                 
                 // Confirm Password Field
                 OutlinedTextField(
-                    value = confirmPassword,
+                    value = confirmPasswordState,
                     onValueChange = { 
-                        confirmPassword = it
-                        errorMessage = null
+                        viewModel.onConfirmPasswordChange(it)
                     },
                     label = { Text("Confirm Password") },
                     placeholder = { Text("Re-enter your password") },
@@ -275,20 +289,14 @@ fun SignUpScreen(
                     keyboardActions = KeyboardActions(
                         onDone = {
                             if (isFormValid && !isLoading) {
-                                // Perform sign up
-                                handleSignUp(email, password, displayName, viewModel) {
-                                    isLoading = true
-                                    errorMessage = null
-                                }
+                                viewModel.onSignUpClick()
                             } else {
                                 focusManager.clearFocus()
                             }
                         }
                     ),
-                    isError = confirmPassword.isNotBlank() && !isConfirmPasswordValid,
-                    supportingText = if (confirmPassword.isNotBlank() && !isConfirmPasswordValid) {
-                        { Text("Passwords do not match") }
-                    } else null,
+                    isError = confirmPasswordState.isNotBlank() && viewModel.confirmPasswordError != null,
+                    supportingText = viewModel.confirmPasswordError?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -308,10 +316,9 @@ fun SignUpScreen(
                 // Sign Up Button
                 Button(
                     onClick = {
-                        handleSignUp(email, password, displayName, viewModel) {
-                            isLoading = true
-                            errorMessage = null
-                        }
+                        android.util.Log.d("SignUpScreen", "Sign Up button clicked")
+                        android.util.Log.d("SignUpScreen", "isFormValid: $isFormValid, isLoading: $isLoading")
+                        viewModel.onSignUpClick()
                     },
                     enabled = isFormValid && !isLoading,
                     modifier = Modifier
@@ -413,17 +420,3 @@ private fun calculatePasswordStrength(password: String): PasswordStrength {
     }
 }
 
-/**
- * Handle sign up logic (placeholder - should be handled by ViewModel)
- */
-private fun handleSignUp(
-    email: String,
-    password: String,
-    displayName: String,
-    viewModel: AuthViewModel?,
-    onLoading: () -> Unit
-) {
-    // This would be handled by ViewModel in a real implementation
-    // For now, this is a placeholder
-    onLoading()
-}

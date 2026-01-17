@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
-    alias(libs.plugins.hilt.android) apply false
 }
 
 // Configure all projects with common settings
@@ -12,14 +11,14 @@ subprojects {
     afterEvaluate {
         // Configure Kotlin options for all modules
         extensions.findByType<org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions>()?.apply {
-            jvmTarget = "11"
+            jvmTarget = "17"
         }
         
         // Configure Android modules with common compile options
         extensions.findByType<com.android.build.gradle.BaseExtension>()?.apply {
             compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_11
-                targetCompatibility = JavaVersion.VERSION_11
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
             }
         }
     }

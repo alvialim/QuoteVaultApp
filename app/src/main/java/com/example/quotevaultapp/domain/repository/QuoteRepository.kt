@@ -42,6 +42,13 @@ interface QuoteRepository {
     suspend fun searchByAuthor(author: String): Result<List<Quote>>
     
     /**
+     * Get a quote by its ID
+     * @param quoteId The ID of the quote to retrieve
+     * @return Result containing the quote or error if not found
+     */
+    suspend fun getQuoteById(quoteId: String): Result<Quote>
+    
+    /**
      * Get quote of the day (typically a random quote)
      * @return Result containing the quote of the day
      */

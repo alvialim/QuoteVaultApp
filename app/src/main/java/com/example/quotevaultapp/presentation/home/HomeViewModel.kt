@@ -6,13 +6,13 @@ import com.example.quotevaultapp.domain.model.Quote
 import com.example.quotevaultapp.domain.model.QuoteCategory
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.repository.QuoteRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.quotevaultapp.data.remote.supabase.SupabaseQuoteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.coroutines.delay
 
 /**
  * Sealed class representing the home screen UI state
@@ -25,12 +25,20 @@ sealed class HomeUiState {
 }
 
 /**
+ * Sealed class representing UI state for any data
+ */
+sealed class UiState<out T> {
+    data object Loading : UiState<Nothing>()
+    data class Success<T>(val data: T) : UiState<T>()
+    data class Error(val message: String) : UiState<Nothing>()
+}
+
+/**
  * ViewModel for Home screen
  * Manages quotes display, pagination, filtering, search, and favorites
  */
-@HiltViewModel
-class HomeViewModel @Inject constructor(
-    private val quoteRepository: QuoteRepository
+class HomeViewModel(
+    private val quoteRepository: QuoteRepository = SupabaseQuoteRepository()
 ) : ViewModel() {
     
     companion object {
@@ -42,9 +50,9 @@ class HomeViewModel @Inject constructor(
     private val _quotes = MutableStateFlow<List<Quote>>(emptyList())
     val quotes: StateFlow<List<Quote>> = _quotes.asStateFlow()
     
-    // Quote of the Day
-    private val _quoteOfTheDay = MutableStateFlow<Quote?>(null)
-    val quoteOfTheDay: StateFlow<Quote?> = _quoteOfTheDay.asStateFlow()
+    // Quote of the Day with UI state
+    private val _quoteOfTheDay = MutableStateFlow<UiState<Quote>>(UiState.Loading)
+    val quoteOfTheDay: StateFlow<UiState<Quote>> = _quoteOfTheDay.asStateFlow()
     
     // Selected category filter
     private val _selectedCategory = MutableStateFlow<QuoteCategory?>(null)
@@ -64,16 +72,19 @@ class HomeViewModel @Inject constructor(
     
     // Pagination state
     private var currentPage = INITIAL_PAGE
-    private var hasMorePages = true
-    private var isLoadingMore = false
+    private val _hasMorePages = MutableStateFlow(true)
+    private val _isLoadingMore = MutableStateFlow(false)
     private var searchResults: List<Quote>? = null
     
     // Expose pagination state to UI
     val hasMore: Boolean
-        get() = hasMorePages && !isLoadingMore
+        get() = _hasMorePages.value && !_isLoadingMore.value
     
     val isLoading: Boolean
-        get() = _uiState.value is HomeUiState.Loading || isLoadingMore
+        get() = _uiState.value is HomeUiState.Loading || _isLoadingMore.value
+    
+    val isLoadingMore: StateFlow<Boolean>
+        get() = _isLoadingMore.asStateFlow()
     
     val error: String?
         get() = (_uiState.value as? HomeUiState.Error)?.message
@@ -90,65 +101,100 @@ class HomeViewModel @Inject constructor(
         if (_selectedCategory.value == category) return
         
         _selectedCategory.value = category
-        _searchQuery.value = "" // Clear search when category changes
-        searchResults = null
-        resetPagination()
-        loadQuotes()
+        
+        // If there's a search query, re-run search with new category
+        // Otherwise, just load quotes for the category
+        val currentQuery = _searchQuery.value.trim()
+        if (currentQuery.isNotEmpty()) {
+            // Re-run search with new category filter
+            performSearch(currentQuery)
+        } else {
+            // Clear search results and load category quotes
+            searchResults = null
+            resetPagination()
+            
+            // Load quotes for selected category or all quotes
+            if (category != null) {
+                loadQuotesByCategory(category)
+            } else {
+                loadQuotes()
+            }
+        }
     }
     
     /**
-     * Handle search query change
+     * Handle search query change with automatic debounced search
      */
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+        
+        // Trigger debounced search automatically
+        viewModelScope.launch {
+            delay(500) // 500ms debounce to avoid too many API calls
+            if (_searchQuery.value == query) { // Only search if query hasn't changed
+                performSearch(query)
+            }
+        }
     }
     
     /**
-     * Execute search
+     * Execute search (can be called manually or automatically)
      */
     fun onSearch() {
-        val query = _searchQuery.value.trim()
-        if (query.isEmpty()) {
-            // Clear search and reload quotes
+        performSearch(_searchQuery.value)
+    }
+    
+    /**
+     * Internal search function that searches both quote text and author
+     * Respects the selected category filter if one is active
+     */
+    private fun performSearch(query: String) {
+        val trimmedQuery = query.trim()
+        if (trimmedQuery.isEmpty()) {
+            // Clear search and reload quotes based on selected category
             searchResults = null
-            _selectedCategory.value = null
             resetPagination()
-            loadQuotes()
+            val selectedCategory = _selectedCategory.value
+            if (selectedCategory != null) {
+                loadQuotesByCategory(selectedCategory)
+            } else {
+                loadQuotes()
+            }
             return
         }
         
-        _uiState.value = HomeUiState.Loading
+        // Set loading state only if we don't already have results
+        if (_quotes.value.isEmpty()) {
+            _uiState.value = HomeUiState.Loading
+        }
         
         viewModelScope.launch {
-            // Try searching by text first, then by author
-            val textResult = quoteRepository.searchQuotes(query)
-            val authorResult = quoteRepository.searchByAuthor(query)
+            // Use category-aware search if repository supports it
+            val selectedCategory = _selectedCategory.value
+            val repository = quoteRepository as? SupabaseQuoteRepository
             
-            when {
-                textResult is Result.Success && authorResult is Result.Success -> {
-                    // Combine and deduplicate results
-                    val combined = (textResult.data + authorResult.data)
-                        .distinctBy { it.id }
-                    searchResults = combined
-                    _quotes.value = combined
+            val result = if (repository != null && selectedCategory != null) {
+                // Use category-aware search
+                repository.searchQuotesWithCategory(trimmedQuery, selectedCategory)
+            } else if (repository != null) {
+                // Search without category filter
+                repository.searchQuotesWithCategory(trimmedQuery, null)
+            } else {
+                // Fallback to regular search
+                quoteRepository.searchQuotes(trimmedQuery)
+            }
+            
+            when (result) {
+                is Result.Success -> {
+                    searchResults = result.data
+                    _quotes.value = result.data
                     _uiState.value = HomeUiState.Success
                 }
-                textResult is Result.Success -> {
-                    searchResults = textResult.data
-                    _quotes.value = textResult.data
-                    _uiState.value = HomeUiState.Success
-                }
-                authorResult is Result.Success -> {
-                    searchResults = authorResult.data
-                    _quotes.value = authorResult.data
-                    _uiState.value = HomeUiState.Success
-                }
-                else -> {
-                    val errorMsg = (textResult as? Result.Error)?.exception?.message
-                        ?: (authorResult as? Result.Error)?.exception?.message
-                        ?: "No quotes found"
+                is Result.Error -> {
+                    val errorMsg = result.exception.message ?: "No quotes found"
                     _uiState.value = HomeUiState.Error(errorMsg)
                     _quotes.value = emptyList()
+                    searchResults = null
                 }
             }
         }
@@ -196,8 +242,10 @@ class HomeViewModel @Inject constructor(
      */
     fun toggleFavorite(quoteId: String) {
         viewModelScope.launch {
+            // Try to find quote in the list first
             val quote = _quotes.value.find { it.id == quoteId }
-                ?: _quoteOfTheDay.value?.takeIf { it.id == quoteId }
+                // If not found, check quote of the day
+                ?: (_quoteOfTheDay.value as? UiState.Success<Quote>)?.data?.takeIf { it.id == quoteId }
                 ?: return@launch
             
             val result = if (quote.isFavorite) {
@@ -208,19 +256,26 @@ class HomeViewModel @Inject constructor(
             
             when (result) {
                 is Result.Success -> {
+                    val newFavoriteStatus = !quote.isFavorite
+                    
                     // Update quote in list
-                    updateQuoteFavoriteStatus(quoteId, !quote.isFavorite)
+                    updateQuoteFavoriteStatus(quoteId, newFavoriteStatus)
                     
                     // Update quote of the day if it's the same quote
-                    if (_quoteOfTheDay.value?.id == quoteId) {
-                        _quoteOfTheDay.value = _quoteOfTheDay.value?.copy(
-                            isFavorite = !quote.isFavorite
+                    val currentQuoteOfTheDay = _quoteOfTheDay.value
+                    if (currentQuoteOfTheDay is UiState.Success && currentQuoteOfTheDay.data.id == quoteId) {
+                        _quoteOfTheDay.value = UiState.Success(
+                            currentQuoteOfTheDay.data.copy(
+                                isFavorite = newFavoriteStatus
+                            )
                         )
                     }
                 }
                 is Result.Error -> {
-                    // Handle error silently or show toast
-                    // Could emit an error state if needed
+                    // Log error for debugging
+                    android.util.Log.e("HomeViewModel", "Error toggling favorite: ${result.exception.message}", result.exception)
+                    // Optionally: emit an error state or show a toast
+                    // For now, we'll silently fail but the error is logged
                 }
             }
         }
@@ -242,7 +297,7 @@ class HomeViewModel @Inject constructor(
         
         _uiState.value = HomeUiState.Loading
         currentPage = INITIAL_PAGE
-        hasMorePages = true
+        _hasMorePages.value = true
         
         viewModelScope.launch {
             val result = quoteRepository.getQuotes(currentPage, PAGE_SIZE)
@@ -250,7 +305,7 @@ class HomeViewModel @Inject constructor(
             when (result) {
                 is Result.Success -> {
                     _quotes.value = result.data
-                    hasMorePages = result.data.size == PAGE_SIZE
+                    _hasMorePages.value = result.data.size == PAGE_SIZE
                     _uiState.value = HomeUiState.Success
                 }
                 is Result.Error -> {
@@ -267,10 +322,10 @@ class HomeViewModel @Inject constructor(
      * Load more quotes (pagination)
      */
     fun loadMoreQuotes() {
-        if (isLoadingMore || !hasMorePages || searchResults != null) return
+        if (_isLoadingMore.value || !_hasMorePages.value || searchResults != null) return
         if (_searchQuery.value.isNotBlank()) return // Don't paginate search results
         
-        isLoadingMore = true
+        _isLoadingMore.value = true
         currentPage++
         
         viewModelScope.launch {
@@ -284,7 +339,7 @@ class HomeViewModel @Inject constructor(
                 is Result.Success -> {
                     val newQuotes = result.data
                     _quotes.update { it + newQuotes }
-                    hasMorePages = newQuotes.size == PAGE_SIZE
+                    _hasMorePages.value = newQuotes.size == PAGE_SIZE
                 }
                 is Result.Error -> {
                     // Revert page on error
@@ -293,7 +348,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
             
-            isLoadingMore = false
+            _isLoadingMore.value = false
         }
     }
     
@@ -303,7 +358,7 @@ class HomeViewModel @Inject constructor(
     private fun loadQuotesByCategory(category: QuoteCategory) {
         _uiState.value = HomeUiState.Loading
         currentPage = INITIAL_PAGE
-        hasMorePages = true
+        _hasMorePages.value = true
         
         viewModelScope.launch {
             val result = quoteRepository.getQuotesByCategory(category, currentPage)
@@ -311,7 +366,7 @@ class HomeViewModel @Inject constructor(
             when (result) {
                 is Result.Success -> {
                     _quotes.value = result.data
-                    hasMorePages = result.data.size == PAGE_SIZE
+                    _hasMorePages.value = result.data.size == PAGE_SIZE
                     _uiState.value = HomeUiState.Success
                 }
                 is Result.Error -> {
@@ -329,17 +384,27 @@ class HomeViewModel @Inject constructor(
      */
     private fun loadQuoteOfTheDay() {
         viewModelScope.launch {
+            _quoteOfTheDay.value = UiState.Loading
+            
             val result = quoteRepository.getQuoteOfTheDay()
             when (result) {
                 is Result.Success -> {
-                    _quoteOfTheDay.value = result.data
+                    _quoteOfTheDay.value = UiState.Success(result.data)
                 }
                 is Result.Error -> {
-                    // Fail silently for quote of the day
-                    _quoteOfTheDay.value = null
+                    _quoteOfTheDay.value = UiState.Error(
+                        result.exception.message ?: "Failed to load quote of the day"
+                    )
                 }
             }
         }
+    }
+    
+    /**
+     * Refresh quote of the day
+     */
+    fun refreshQuoteOfTheDay() {
+        loadQuoteOfTheDay()
     }
     
     /**
@@ -362,7 +427,7 @@ class HomeViewModel @Inject constructor(
      */
     private fun resetPagination() {
         currentPage = INITIAL_PAGE
-        hasMorePages = true
-        isLoadingMore = false
+        _hasMorePages.value = true
+        _isLoadingMore.value = false
     }
 }

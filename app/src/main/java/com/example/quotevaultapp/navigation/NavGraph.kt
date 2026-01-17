@@ -6,7 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -56,7 +56,8 @@ fun QuoteVaultNavGraph(
     }
     
     // Determine start destination based on auth state
-    val initialRoute = remember(startDestination) {
+    // Include authState in remember keys so it recomputes when auth state changes
+    val initialRoute = remember(startDestination, authState) {
         if (authState != null && startDestination == Screen.Splash.route) {
             Screen.Home.route
         } else {
@@ -139,7 +140,7 @@ fun QuoteVaultNavGraph(
             popExitTransition = { slideOutToRight() }
         ) {
             ForgotPasswordScreen(
-                onNavigateBack = {
+                onBack = {
                     navController.popBackStack()
                 }
             )
@@ -152,11 +153,9 @@ fun QuoteVaultNavGraph(
             exitTransition = { fadeOutAnimation() }
         ) {
             HomeScreen(
-                onQuoteClick = { quoteId ->
-                    navController.navigate(Screen.QuoteDetail.createRoute(quoteId))
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
+                navController = navController,
+                onQuoteClick = { quote ->
+                    navController.navigate(Screen.QuoteDetail.createRoute(quote.id))
                 }
             )
         }
@@ -167,8 +166,8 @@ fun QuoteVaultNavGraph(
             exitTransition = { fadeOutAnimation() }
         ) {
             FavoritesScreen(
-                onQuoteClick = { quoteId ->
-                    navController.navigate(Screen.QuoteDetail.createRoute(quoteId))
+                onQuoteClick = { quote ->
+                    navController.navigate(Screen.QuoteDetail.createRoute(quote.id))
                 }
             )
         }
@@ -179,8 +178,8 @@ fun QuoteVaultNavGraph(
             exitTransition = { fadeOutAnimation() }
         ) {
             CollectionsScreen(
-                onCollectionClick = { collectionId ->
-                    navController.navigate(Screen.CollectionDetail.createRoute(collectionId))
+                onCollectionClick = { collection ->
+                    navController.navigate(Screen.CollectionDetail.createRoute(collection.id))
                 }
             )
         }
@@ -223,7 +222,7 @@ fun QuoteVaultNavGraph(
                 onBack = {
                     navController.popBackStack()
                 },
-                viewModel = hiltViewModel<QuoteDetailViewModel>()
+                viewModel = viewModel<QuoteDetailViewModel>()
             )
         }
         
@@ -247,7 +246,7 @@ fun QuoteVaultNavGraph(
                 onBack = {
                     navController.popBackStack()
                 },
-                viewModel = hiltViewModel<CollectionDetailViewModel>()
+                viewModel = viewModel<CollectionDetailViewModel>()
             )
         }
         

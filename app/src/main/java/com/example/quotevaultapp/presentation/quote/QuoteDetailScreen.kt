@@ -42,7 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quotevaultapp.domain.model.FontSize
 import com.example.quotevaultapp.domain.model.Quote
 import com.example.quotevaultapp.presentation.components.QuoteCardTemplate
@@ -65,7 +65,7 @@ fun QuoteDetailScreen(
     quote: Quote? = null,
     onBack: () -> Unit = {},
     fontSize: FontSize = FontSize.MEDIUM,
-    viewModel: QuoteDetailViewModel = hiltViewModel()
+    viewModel: QuoteDetailViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -79,19 +79,10 @@ fun QuoteDetailScreen(
     
     // Load quote if not provided
     LaunchedEffect(quoteId) {
-        if (quote == null && quoteState == null) {
-            viewModel.setQuote(
-                Quote(
-                    id = quoteId,
-                    text = "Loading quote...",
-                    author = "Loading",
-                    category = com.example.quotevaultapp.domain.model.QuoteCategory.GENERAL,
-                    createdAt = System.currentTimeMillis()
-                )
-            )
-            // TODO: Load actual quote when getQuoteById is implemented
-        } else if (quote != null) {
+        if (quote != null) {
             viewModel.setQuote(quote)
+        } else if (quoteState == null) {
+            viewModel.loadQuote(quoteId)
         }
     }
     
@@ -185,11 +176,13 @@ fun QuoteDetailScreen(
                         isGeneratingBitmap = true
                         scope.launch {
                             try {
-                                val bitmap = QuoteCardGenerator.generateBitmap(
-                                    context = context,
-                                    quote = quote,
-                                    style = selectedTemplate
-                                )
+                                displayedQuote?.let { q ->
+                                    val bitmap = QuoteCardGenerator.generateBitmap(
+                                        context = context,
+                                        quote = q,
+                                        style = selectedTemplate
+                                    )
+                                }
                             } catch (e: Exception) {
                                 android.util.Log.e("QuoteDetail", "Failed to share image: ${e.message}", e)
                             } finally {

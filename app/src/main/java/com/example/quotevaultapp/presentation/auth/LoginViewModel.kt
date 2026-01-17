@@ -5,13 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.model.User
 import com.example.quotevaultapp.domain.repository.AuthRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.quotevaultapp.data.remote.supabase.SupabaseAuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Sealed class representing the login state
@@ -27,9 +26,8 @@ sealed class LoginState {
  * ViewModel for Login screen
  * Manages login state, email/password inputs, and authentication logic
  */
-@HiltViewModel
-class LoginViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+class LoginViewModel(
+    private val authRepository: AuthRepository = SupabaseAuthRepository()
 ) : ViewModel() {
     
     // Email input state

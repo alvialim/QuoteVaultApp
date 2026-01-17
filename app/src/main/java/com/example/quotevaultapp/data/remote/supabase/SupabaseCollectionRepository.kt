@@ -9,8 +9,13 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.realtime.realtime
 import com.example.quotevaultapp.BuildConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,8 +48,10 @@ class SupabaseCollectionRepository : CollectionRepository {
     private val collectionsFlow = MutableStateFlow<List<Collection>>(emptyList())
     
     init {
-        // Load initial collections
-        loadCollections()
+        // Load initial collections in a coroutine scope
+        CoroutineScope(Dispatchers.IO).launch {
+            loadCollections()
+        }
     }
     
     override suspend fun createCollection(
@@ -55,16 +62,15 @@ class SupabaseCollectionRepository : CollectionRepository {
             val userId = supabaseClient.auth.currentUserOrNull()?.id
                 ?: return Result.Error(Exception("User not authenticated"))
             
-            val insertData = buildMap<String, Any?> {
-                put("user_id", userId)
-                put("name", name)
-                if (description != null) {
-                    put("description", description)
-                }
-            }
+            // Create a serializable insert entity
+            val insertEntity = CollectionInsertEntity(
+                user_id = userId,
+                name = name,
+                description = description
+            )
             
             val created = supabaseClient.postgrest.from("collections")
-                .insert(insertData) {
+                .insert(insertEntity) {
                     select()
                 }
                 .decodeSingle<CollectionEntity>()
@@ -76,6 +82,7 @@ class SupabaseCollectionRepository : CollectionRepository {
             
             Result.Success(collection)
         } catch (e: Exception) {
+            android.util.Log.e("SupabaseCollectionRepository", "Error creating collection: ${e.message}", e)
             Result.Error(e)
         }
     }
@@ -99,7 +106,7 @@ class SupabaseCollectionRepository : CollectionRepository {
                         eq("id", collectionId)
                         eq("user_id", userId)
                     }
-                    limit(1)
+                    limit(1L)
                 }
                 .decodeList<CollectionEntity>()
             
@@ -140,7 +147,7 @@ class SupabaseCollectionRepository : CollectionRepository {
                         eq("id", collectionId)
                         eq("user_id", userId)
                     }
-                    limit(1)
+                    limit(1L)
                 }
                 .decodeList<CollectionEntity>()
             
@@ -178,7 +185,7 @@ class SupabaseCollectionRepository : CollectionRepository {
                         eq("id", collectionId)
                         eq("user_id", userId)
                     }
-                    limit(1)
+                    limit(1L)
                 }
                 .decodeList<CollectionEntity>()
             
@@ -201,30 +208,32 @@ class SupabaseCollectionRepository : CollectionRepository {
             
             val quoteIds = collectionQuotes.map { it.quote_id }
             
-            // Get quote details
-            val quoteEntities = supabaseClient.postgrest.from("quotes")
+            // Get quote details - fetch all and filter in memory as workaround for 'in' operator
+            val allQuoteEntities = supabaseClient.postgrest.from("quotes")
                 .select {
-                    filter {
-                        `in`("id", quoteIds)
-                    }
-                    order("created_at", ascending = false)
+                    order("created_at", Order.DESCENDING)
+                    limit(1000) // Reasonable limit
                 }
                 .decodeList<QuoteEntity>()
             
-            // Check which quotes are favorites
-            val favorites = supabaseClient.postgrest.from("user_favorites")
+            val quoteEntities = allQuoteEntities.filter { it.id in quoteIds }
+            
+            // Check which quotes are favorites - fetch all for user and filter
+            val allFavorites = supabaseClient.postgrest.from("user_favorites")
                 .select {
                     filter {
                         eq("user_id", userId)
-                        `in`("quote_id", quoteIds)
                     }
                 }
                 .decodeList<FavoriteEntity>()
+            
+            val favoriteIds = allFavorites
+                .filter { it.quote_id in quoteIds }
                 .map { it.quote_id }
                 .toSet()
             
             val quotes = quoteEntities.map { entity ->
-                mapToDomainQuote(entity, favorites.contains(entity.id))
+                mapToDomainQuote(entity, favoriteIds.contains(entity.id))
             }
             
             Result.Success(quotes)
@@ -245,7 +254,7 @@ class SupabaseCollectionRepository : CollectionRepository {
                         eq("id", collectionId)
                         eq("user_id", userId)
                     }
-                    limit(1)
+                    limit(1L)
                 }
                 .decodeList<CollectionEntity>()
             
@@ -280,15 +289,19 @@ class SupabaseCollectionRepository : CollectionRepository {
                 return
             }
             
+            android.util.Log.d("SupabaseCollectionRepository", "Loading collections for user: $userId")
+            
             // Get all collections for user
             val collectionEntities = supabaseClient.postgrest.from("collections")
                 .select {
                     filter {
                         eq("user_id", userId)
                     }
-                    order("created_at", ascending = false)
+                    order("created_at", Order.DESCENDING)
                 }
                 .decodeList<CollectionEntity>()
+            
+            android.util.Log.d("SupabaseCollectionRepository", "Found ${collectionEntities.size} collections")
             
             // Get quote IDs for each collection
             val collectionsWithQuotes = collectionEntities.map { entity ->
@@ -304,10 +317,20 @@ class SupabaseCollectionRepository : CollectionRepository {
                 mapToDomainCollection(entity, quoteIds)
             }
             
+            android.util.Log.d("SupabaseCollectionRepository", "Loaded ${collectionsWithQuotes.size} collections with quotes")
             collectionsFlow.value = collectionsWithQuotes
         } catch (e: Exception) {
+            android.util.Log.e("SupabaseCollectionRepository", "Error loading collections: ${e.message}", e)
             collectionsFlow.value = emptyList()
         }
+    }
+    
+    /**
+     * Force reload collections from database
+     * This is useful when you need to explicitly refresh the collections list
+     */
+    suspend fun reloadCollections() {
+        loadCollections()
     }
     
     /**
@@ -351,6 +374,16 @@ class SupabaseCollectionRepository : CollectionRepository {
             System.currentTimeMillis()
         }
     }
+    
+    /**
+     * Database entity for inserting a new collection (without id and created_at - auto-generated)
+     */
+    @Serializable
+    private data class CollectionInsertEntity(
+        val user_id: String,
+        val name: String,
+        val description: String? = null
+    )
     
     /**
      * Database entity for collections table

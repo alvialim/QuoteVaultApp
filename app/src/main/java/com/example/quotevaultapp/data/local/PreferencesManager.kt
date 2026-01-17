@@ -10,28 +10,42 @@ import com.example.quotevaultapp.domain.model.FontSize
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.model.User
 import com.example.quotevaultapp.domain.repository.AuthRepository
-import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.Flow
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import javax.inject.Inject
-import javax.inject.Singleton
+import android.content.Context
+
+/**
+ * DataStore extension property for preferences
+ */
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "settings",
+    corruptionHandler = ReplaceFileCorruptionHandler(
+        produceNewData = { emptyPreferences() }
+    ),
+    scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+)
 
 /**
  * Manages app preferences using DataStore
  * Provides Flow-based API for observing preference changes
  * Syncs key preferences to Supabase user profile
  */
-@Singleton
-class PreferencesManager @Inject constructor(
-    private val dataStore: DataStore<Preferences>,
-    private val authRepository: AuthRepository,
-    private val supabaseClient: SupabaseClient
+class PreferencesManager(
+    context: Context,
+    private val authRepository: AuthRepository = com.example.quotevaultapp.data.remote.supabase.SupabaseAuthRepository()
 ) {
+    private val dataStore: DataStore<Preferences> = context.dataStore
     
     companion object {
         // Preference keys
@@ -232,46 +246,22 @@ class PreferencesManager @Inject constructor(
      * Sync theme preference to Supabase user profile
      * Updates the profiles table with the theme preference
      * Note: Assumes the profiles table has a 'theme' column of type text/varchar
+     * TODO: Re-implement when SupabaseClient singleton is available
      */
     private suspend fun syncThemeToSupabase(theme: AppTheme) {
-        try {
-            val currentSession = supabaseClient.auth.currentSessionOrNull()
-            if (currentSession != null && currentSession.user != null) {
-                // Update profile in Supabase profiles table
-                supabaseClient.postgrest.from("profiles")
-                    .update(mapOf("theme" to theme.name)) {
-                        filter {
-                            eq("id", currentSession.user!!.id)
-                        }
-                    }
-            }
-        } catch (e: Exception) {
-            // Log error but don't fail - local preference is already saved
-            android.util.Log.e("PreferencesManager", "Failed to sync theme to Supabase: ${e.message}", e)
-        }
+        // TODO: Sync theme to Supabase profile
+        // For now, only local DataStore is updated
     }
     
     /**
      * Sync font size preference to Supabase user profile
      * Updates the profiles table with the font size preference
      * Note: Assumes the profiles table has a 'font_size' column of type text/varchar
+     * TODO: Re-implement when SupabaseClient singleton is available
      */
     private suspend fun syncFontSizeToSupabase(fontSize: FontSize) {
-        try {
-            val currentSession = supabaseClient.auth.currentSessionOrNull()
-            if (currentSession != null && currentSession.user != null) {
-                // Update profile in Supabase profiles table
-                supabaseClient.postgrest.from("profiles")
-                    .update(mapOf("font_size" to fontSize.name)) {
-                        filter {
-                            eq("id", currentSession.user!!.id)
-                        }
-                    }
-            }
-        } catch (e: Exception) {
-            // Log error but don't fail - local preference is already saved
-            android.util.Log.e("PreferencesManager", "Failed to sync font size to Supabase: ${e.message}", e)
-        }
+        // TODO: Sync font size to Supabase profile
+        // For now, only local DataStore is updated
     }
     
     /**
@@ -284,15 +274,12 @@ class PreferencesManager @Inject constructor(
             if (currentUser is com.example.quotevaultapp.domain.model.Result.Success && currentUser.data != null) {
                 val user = currentUser.data
                 
-                // Apply theme from user profile if available
-                user?.theme?.let { theme ->
-                    updateTheme(theme)
-                }
+                // Apply theme from user profile
+                // user is guaranteed non-null after the null check above, and theme/fontSize are non-null properties
+                updateTheme(user.theme)
                 
-                // Apply font size from user profile if available
-                user?.fontSize?.let { fontSize ->
-                    updateFontSize(fontSize)
-                }
+                // Apply font size from user profile
+                updateFontSize(user.fontSize)
             }
         } catch (e: Exception) {
             android.util.Log.e("PreferencesManager", "Failed to load preferences from Supabase: ${e.message}", e)

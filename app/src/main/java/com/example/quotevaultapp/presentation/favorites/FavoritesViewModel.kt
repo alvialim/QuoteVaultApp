@@ -6,7 +6,7 @@ import com.example.quotevaultapp.domain.model.Quote
 import com.example.quotevaultapp.domain.model.QuoteCategory
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.repository.QuoteRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.quotevaultapp.data.remote.supabase.SupabaseQuoteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Sealed class representing the favorites screen UI state
@@ -30,9 +29,8 @@ sealed class FavoritesUiState {
  * ViewModel for Favorites screen
  * Manages favorite quotes, search, filtering, and sync state
  */
-@HiltViewModel
-class FavoritesViewModel @Inject constructor(
-    private val quoteRepository: QuoteRepository
+class FavoritesViewModel(
+    private val quoteRepository: QuoteRepository = SupabaseQuoteRepository()
 ) : ViewModel() {
     
     // Favorites list (reactive from repository)
@@ -98,12 +96,21 @@ class FavoritesViewModel @Inject constructor(
         if (_uiState.value is FavoritesUiState.Loading) return
         
         _uiState.value = FavoritesUiState.Loading
+        _isSyncing.value = true
         
-        // Favorites are automatically updated via Flow observation
-        // This is just for manual triggering
+        // Force reload favorites from database
         viewModelScope.launch {
-            // Force refresh by re-observing
-            // The Flow will emit current favorites
+            try {
+                // If repository is SupabaseQuoteRepository, trigger a reload
+                if (quoteRepository is SupabaseQuoteRepository) {
+                    (quoteRepository as SupabaseQuoteRepository).forceReloadFavorites()
+                }
+            } catch (e: Exception) {
+                _uiState.value = FavoritesUiState.Error(
+                    e.message ?: "Failed to load favorites"
+                )
+                _isSyncing.value = false
+            }
         }
     }
     

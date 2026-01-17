@@ -5,12 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.model.User
 import com.example.quotevaultapp.domain.repository.AuthRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.quotevaultapp.data.remote.supabase.SupabaseAuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Sealed class representing the sign up state
@@ -35,9 +34,8 @@ enum class PasswordStrength {
  * ViewModel for Sign Up screen
  * Manages sign up state, form inputs, and registration logic
  */
-@HiltViewModel
-class SignUpViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+class SignUpViewModel(
+    private val authRepository: AuthRepository = SupabaseAuthRepository()
 ) : ViewModel() {
     
     // Display name input state
@@ -162,6 +160,15 @@ class SignUpViewModel @Inject constructor(
      * Validates inputs and attempts to register the user
      */
     fun onSignUpClick() {
+        android.util.Log.d("SignUpViewModel", "onSignUpClick called")
+        android.util.Log.d("SignUpViewModel", "isFormValid: $isFormValid")
+        android.util.Log.d("SignUpViewModel", "isEmailValid: $isEmailValid")
+        android.util.Log.d("SignUpViewModel", "isPasswordValid: $isPasswordValid")
+        android.util.Log.d("SignUpViewModel", "isConfirmPasswordValid: $isConfirmPasswordValid")
+        android.util.Log.d("SignUpViewModel", "Email: ${_email.value}")
+        android.util.Log.d("SignUpViewModel", "Password length: ${_password.value.length}")
+        android.util.Log.d("SignUpViewModel", "Confirm password matches: ${_password.value == _confirmPassword.value}")
+        
         if (!isFormValid) {
             val errorMessages = mutableListOf<String>()
             
@@ -175,12 +182,14 @@ class SignUpViewModel @Inject constructor(
                 errorMessages.add("Passwords do not match")
             }
             
+            android.util.Log.e("SignUpViewModel", "Form validation failed: ${errorMessages.joinToString(", ")}")
             _signUpState.value = SignUpState.Error(
                 errorMessages.joinToString("\n")
             )
             return
         }
         
+        android.util.Log.d("SignUpViewModel", "Form is valid, starting sign up process...")
         _signUpState.value = SignUpState.Loading
         
         viewModelScope.launch {
