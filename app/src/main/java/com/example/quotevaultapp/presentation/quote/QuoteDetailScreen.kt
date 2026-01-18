@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quotevaultapp.domain.model.FontSize
@@ -95,36 +96,71 @@ fun QuoteDetailScreen(
     val displayedQuote = quote ?: quoteState
     
     // Permission helper for saving to gallery
+    // This will request permission at runtime if not granted, then save the image
     val requestStoragePermission = rememberStoragePermission(
         onGranted = {
-            // Permission granted, proceed with save
+            // Step 2: Permission granted (or already granted), proceed with save
+            android.util.Log.d("QuoteDetail", "Step 2: Storage permission granted, starting save operation")
             scope.launch {
                 isSavingImage = true
                 try {
                     displayedQuote?.let { q ->
+                        android.util.Log.d("QuoteDetail", "Generating bitmap for save with template: $selectedTemplate")
+                        // Use Activity context for bitmap generation
+                        val activityContext = activityContext ?: context
+                        android.util.Log.d("QuoteDetail", "Using context for save: ${activityContext.javaClass.simpleName}")
                         val result = ShareHelper.saveQuoteCardToGallery(
-                            context = context,
+                            context = activityContext,
                             quote = q,
                             style = selectedTemplate
                         )
                         when (result) {
                             is com.example.quotevaultapp.domain.model.Result.Success -> {
                                 android.util.Log.d("QuoteDetail", "Image saved to gallery: ${result.data}")
+                                // Show toast message on success
+                                Toast.makeText(
+                                    context,
+                                    "Image saved to Gallery!",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                             is com.example.quotevaultapp.domain.model.Result.Error -> {
                                 android.util.Log.e("QuoteDetail", "Failed to save image: ${result.exception.message}", result.exception)
+                                Toast.makeText(
+                                    context,
+                                    "Failed to save: ${result.exception.message ?: "Unknown error"}",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         }
+                    } ?: run {
+                        android.util.Log.w("QuoteDetail", "Cannot save: quote is null")
+                        Toast.makeText(
+                            context,
+                            "Cannot save: Quote not available",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("QuoteDetail", "Failed to save image: ${e.message}", e)
+                    e.printStackTrace()
+                    Toast.makeText(
+                        context,
+                        "Failed to save: ${e.message ?: "Unknown error"}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 } finally {
                     isSavingImage = false
                 }
             }
         },
         onDenied = {
-            android.util.Log.w("QuoteDetail", "Storage permission denied, cannot save image")
+            android.util.Log.w("QuoteDetail", "Storage permission denied by user, cannot save image")
+            Toast.makeText(
+                context,
+                "Storage permission is required to save images. Please grant permission in Settings.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     )
     
@@ -279,10 +315,17 @@ fun QuoteDetailScreen(
                         android.util.Log.d("QuoteDetail", "Save button clicked")
                         if (displayedQuote == null) {
                             android.util.Log.w("QuoteDetail", "Cannot save: quote is null")
+                            Toast.makeText(
+                                context,
+                                "Cannot save: Quote not available",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return@OutlinedButton
                         }
-                        // Request permission first (handles all Android versions)
-                        android.util.Log.d("QuoteDetail", "Requesting storage permission")
+                        // Step 1: Request permission at runtime first
+                        // This will show system permission dialog if not granted
+                        // Step 2: Save will happen automatically after permission is granted
+                        android.util.Log.d("QuoteDetail", "Step 1: Requesting storage permission at runtime...")
                         requestStoragePermission()
                     },
                     enabled = !isSavingImage && displayedQuote != null,

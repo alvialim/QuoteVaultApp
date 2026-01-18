@@ -147,26 +147,52 @@ object ShareHelper {
         style: com.example.quotevaultapp.presentation.components.QuoteCardTemplateStyle
     ): com.example.quotevaultapp.domain.model.Result<String> {
         return try {
+            android.util.Log.d("ShareHelper", "Starting save quote card to gallery")
+            // Ensure we have Activity context for bitmap generation
+            val activityContext: Context = run {
+                if (context is android.app.Activity) {
+                    context
+                } else {
+                    var ctx: Context? = context
+                    var activity: android.app.Activity? = null
+                    while (ctx is android.content.ContextWrapper) {
+                        ctx = ctx.baseContext
+                        if (ctx is android.app.Activity) {
+                            activity = ctx
+                            break
+                        }
+                    }
+                    activity ?: context
+                }
+            }
+            android.util.Log.d("ShareHelper", "Using context for save: ${activityContext.javaClass.simpleName}")
+            
             // Generate bitmap first
+            android.util.Log.d("ShareHelper", "Generating bitmap for save")
             val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 QuoteCardGenerator.generateBitmap(
-                    context = context,
+                    context = activityContext,
                     quote = quote,
                     style = style,
                     width = 1080,
                     height = 1920
                 )
             }
+            android.util.Log.d("ShareHelper", "Bitmap generated successfully: ${bitmap.width}x${bitmap.height}")
             
             // Save to gallery
+            android.util.Log.d("ShareHelper", "Saving bitmap to gallery")
             val uri = saveImageToGalleryInternal(context, bitmap)
             if (uri != null) {
+                android.util.Log.d("ShareHelper", "Image saved successfully to: $uri")
                 com.example.quotevaultapp.domain.model.Result.Success(uri.toString())
             } else {
-                com.example.quotevaultapp.domain.model.Result.Error(Exception("Failed to save image to gallery"))
+                android.util.Log.e("ShareHelper", "Failed to save image to gallery: URI is null")
+                com.example.quotevaultapp.domain.model.Result.Error(Exception("Failed to save image to gallery: URI is null"))
             }
         } catch (e: Exception) {
             android.util.Log.e("ShareHelper", "Failed to save quote card to gallery: ${e.message}", e)
+            e.printStackTrace()
             com.example.quotevaultapp.domain.model.Result.Error(e)
         }
     }
@@ -196,7 +222,15 @@ object ShareHelper {
             
             // Save bitmap to URI
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
+                    android.util.Log.e("ShareHelper", "Failed to compress bitmap")
+                    return@withContext null
+                }
+                outputStream.flush()
+                android.util.Log.d("ShareHelper", "Bitmap compressed and saved to URI: $uri")
+            } ?: run {
+                android.util.Log.e("ShareHelper", "Failed to open output stream for URI: $uri")
+                return@withContext null
             }
             
             // Mark as not pending (Android 10+)
