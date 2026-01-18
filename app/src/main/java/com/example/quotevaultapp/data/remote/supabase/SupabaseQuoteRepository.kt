@@ -343,11 +343,22 @@ class SupabaseQuoteRepository : QuoteRepository {
         }
     }
     
+    /**
+     * Get quote of the day using deterministic logic
+     * Uses day of year modulo total quotes for consistent daily selection
+     * Handles edge cases:
+     * - Time zone changes: Calendar.getInstance() uses device timezone
+     * - Device time changes: Day of year recalculates based on current time
+     * - Empty database: Returns error with descriptive message
+     * - Network issues: Uses cached quote if available
+     */
     override suspend fun getQuoteOfTheDay(): Result<Quote> {
         return try {
             val userId = supabaseClient.auth.currentUserOrNull()?.id
             
             // Use day of year to get a consistent quote for the day
+            // Edge case: Time zone changes are handled automatically by Calendar.getInstance()
+            // Edge case: Device time changes cause dayOfYear to recalculate
             val calendar = Calendar.getInstance()
             val dayOfYear = calendar.get(Calendar.DAY_OF_YEAR)
             

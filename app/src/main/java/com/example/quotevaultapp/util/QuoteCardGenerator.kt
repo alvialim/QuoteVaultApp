@@ -59,8 +59,32 @@ object QuoteCardGenerator {
         width: Int = 1080,
         height: Int = 1920
     ): android.graphics.Bitmap = withContext(Dispatchers.Main) {
-        // Create ComposeView to render composable
-        val composeView = ComposeView(context).apply {
+        android.util.Log.d("QuoteCardGenerator", "Starting bitmap generation: ${width}x${height}")
+        
+        // Ensure we have Activity context for ComposeView (must be Activity)
+        val activity = run {
+            if (context is android.app.Activity) {
+                context
+            } else {
+                var ctx: Context? = context
+                var foundActivity: android.app.Activity? = null
+                while (ctx is android.content.ContextWrapper) {
+                    ctx = ctx.baseContext
+                    if (ctx is android.app.Activity) {
+                        foundActivity = ctx
+                        break
+                    }
+                }
+                foundActivity
+            }
+        } ?: throw IllegalStateException("Cannot generate bitmap: Activity context required for ComposeView")
+        
+        android.util.Log.d("QuoteCardGenerator", "Using Activity: ${activity.javaClass.simpleName}")
+        
+        // Create ComposeView with proper composition strategy
+        val composeView = ComposeView(activity).apply {
+            layoutParams = android.view.ViewGroup.LayoutParams(width, height)
+            // Use AlwaysDisposeOnViewTreeLifecycleDestroyed to avoid lifecycle issues
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 MaterialTheme {
@@ -75,21 +99,65 @@ object QuoteCardGenerator {
             }
         }
         
-        // Measure and layout
-        val specWidth = android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY)
-        val specHeight = android.view.View.MeasureSpec.makeMeasureSpec(height, android.view.View.MeasureSpec.EXACTLY)
-        composeView.measure(specWidth, specHeight)
-        composeView.layout(0, 0, width, height)
+        // Attach to Activity's window temporarily
+        val rootView = activity.window.decorView.rootView as? android.view.ViewGroup
+            ?: throw IllegalStateException("Cannot access Activity window root view")
         
-        // Wait for composition to complete
-        delay(100)
+        // Add to a container that's attached to window
+        val container = android.widget.FrameLayout(activity).apply {
+            layoutParams = android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            alpha = 0f // Make invisible
+            visibility = android.view.View.GONE // Hide it
+        }
+        container.addView(composeView, android.widget.FrameLayout.LayoutParams(width, height))
+        rootView.addView(container)
         
-        // Render to bitmap
-        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(bitmap)
-        composeView.draw(canvas)
-        
-        bitmap
+        try {
+            // Measure and layout
+            val specWidth = android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY)
+            val specHeight = android.view.View.MeasureSpec.makeMeasureSpec(height, android.view.View.MeasureSpec.EXACTLY)
+            composeView.measure(specWidth, specHeight)
+            composeView.layout(0, 0, width, height)
+            
+            // Wait for composition to complete
+            delay(500)
+            
+            // Wait for the view to be ready
+            var attempts = 0
+            while (attempts < 20 && (!composeView.isLaidOut || composeView.width == 0)) {
+                delay(50)
+                attempts++
+            }
+            
+            android.util.Log.d("QuoteCardGenerator", "ComposeView ready after ${attempts} attempts, isLaidOut: ${composeView.isLaidOut}, size: ${composeView.width}x${composeView.height}")
+            
+            // Force another layout pass
+            composeView.requestLayout()
+            composeView.post {
+                composeView.invalidate()
+            }
+            delay(200)
+            
+            // Render to bitmap
+            val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+            
+            // Draw white background
+            canvas.drawColor(android.graphics.Color.WHITE)
+            
+            // Draw the view
+            composeView.draw(canvas)
+            
+            android.util.Log.d("QuoteCardGenerator", "Bitmap generated successfully: ${bitmap.width}x${bitmap.height}")
+            
+            bitmap
+        } finally {
+            // Clean up - remove from window
+            rootView.removeView(container)
+        }
     }
     
     /**

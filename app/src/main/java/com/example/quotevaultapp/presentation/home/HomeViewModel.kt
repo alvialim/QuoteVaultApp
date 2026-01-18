@@ -385,13 +385,16 @@ class HomeViewModel(
     private fun loadQuoteOfTheDay() {
         viewModelScope.launch {
             _quoteOfTheDay.value = UiState.Loading
+            android.util.Log.d("HomeViewModel", "Loading quote of the day...")
             
             val result = quoteRepository.getQuoteOfTheDay()
             when (result) {
                 is Result.Success -> {
+                    android.util.Log.d("HomeViewModel", "Quote of the day loaded successfully: ${result.data.id} - \"${result.data.text.take(50)}...\" by ${result.data.author}")
                     _quoteOfTheDay.value = UiState.Success(result.data)
                 }
                 is Result.Error -> {
+                    android.util.Log.e("HomeViewModel", "Failed to load quote of the day: ${result.exception.message}", result.exception)
                     _quoteOfTheDay.value = UiState.Error(
                         result.exception.message ?: "Failed to load quote of the day"
                     )
@@ -404,6 +407,7 @@ class HomeViewModel(
      * Refresh quote of the day
      */
     fun refreshQuoteOfTheDay() {
+        android.util.Log.d("HomeViewModel", "Refreshing quote of the day...")
         loadQuoteOfTheDay()
     }
     

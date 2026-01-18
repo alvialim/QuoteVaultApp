@@ -86,3 +86,13 @@ object NotificationPermissionHelper {
         }
     }
 }
+
+/**
+ * Extension function to check if notification permission is granted
+ * Convenient utility for Context objects
+ * 
+ * @return true if permission is granted or Android version is below 13, false otherwise
+ */
+fun Context.hasNotificationPermission(): Boolean {
+    return NotificationPermissionHelper.hasNotificationPermission(this)
+}

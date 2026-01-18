@@ -61,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -73,6 +74,7 @@ import com.example.quotevaultapp.presentation.components.EmptyState
 import com.example.quotevaultapp.presentation.components.ErrorState
 import com.example.quotevaultapp.presentation.components.QuoteCard
 import com.example.quotevaultapp.presentation.components.QuoteCardShimmer
+import com.example.quotevaultapp.util.ShareHelper
 import kotlin.math.roundToInt
 
 /**
@@ -91,6 +93,8 @@ fun FavoritesScreen(
     onShareClick: (Quote) -> Unit = {},
     fontSize: FontSize = FontSize.MEDIUM
 ) {
+    val context = LocalContext.current
+    
     val uiState by viewModel.uiState.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
@@ -319,7 +323,7 @@ fun FavoritesScreen(
                                         quote = quote,
                                         onDelete = { viewModel.removeFromFavorites(quote.id) },
                                         onFavoriteClick = { viewModel.toggleFavorite(quote.id) },
-                                        onShareClick = { onShareClick(quote) },
+                                        onShareClick = { quote -> ShareHelper.shareQuoteAsText(context, quote) },
                                         onClick = onQuoteClick,
                                         fontSize = fontSize
                                     )

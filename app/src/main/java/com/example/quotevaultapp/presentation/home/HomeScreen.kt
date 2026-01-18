@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -68,6 +70,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -88,6 +91,7 @@ import com.example.quotevaultapp.presentation.components.QuoteCard
 import com.example.quotevaultapp.presentation.components.QuoteCardShimmer
 import com.example.quotevaultapp.presentation.components.QuoteOfTheDayShimmer
 import com.example.quotevaultapp.presentation.theme.AppShapes
+import com.example.quotevaultapp.util.ShareHelper
 import com.example.quotevaultapp.presentation.theme.QuoteTypography
 
 /**
@@ -109,6 +113,8 @@ fun HomeScreen(
     onShareClick: (Quote) -> Unit = {},
     fontSize: FontSize = FontSize.MEDIUM
 ) {
+    val context = LocalContext.current
+    
     val uiState by viewModel.uiState.collectAsState()
     val quotes by viewModel.quotes.collectAsState()
     val quoteOfTheDay by viewModel.quoteOfTheDay.collectAsState()
@@ -284,10 +290,11 @@ fun HomeScreen(
                                     QuoteOfTheDayShimmer()
                                 }
                                 is UiState.Success -> {
-                                    QuoteOfTheDayCard(
+                                        QuoteOfTheDayCard(
                                         quote = qotdState.data,
                                         onFavoriteClick = { onFavoriteClick(qotdState.data) },
-                                        onShareClick = { onShareClick(qotdState.data) },
+                                        onShareClick = { quote -> ShareHelper.shareQuoteAsText(context, quote) },
+                                        onClick = onQuoteClick,
                                         fontSize = fontSize
                                     )
                                 }
@@ -389,7 +396,7 @@ fun HomeScreen(
                                     QuoteCard(
                                         quote = quote,
                                         onFavoriteClick = onFavoriteClick,
-                                        onShareClick = onShareClick,
+                                        onShareClick = { quote -> ShareHelper.shareQuoteAsText(context, quote) },
                                         onClick = onQuoteClick,
                                         fontSize = fontSize
                                     )
@@ -445,10 +452,23 @@ private fun QuoteOfTheDayCard(
     quote: Quote,
     onFavoriteClick: (Quote) -> Unit,
     onShareClick: (Quote) -> Unit,
+    onClick: ((Quote) -> Unit)? = null,
     fontSize: FontSize
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        onClick = { onClick(quote) },
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    )
+                } else {
+                    Modifier
+                }
+            ),
         shape = AppShapes.quoteCardElevated,
         elevation = CardDefaults.cardElevation(
             defaultElevation = 8.dp,

@@ -52,11 +52,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.quotevaultapp.util.NotificationPermissionHelper
 import com.example.quotevaultapp.BuildConfig
 import com.example.quotevaultapp.domain.model.AppTheme
 import com.example.quotevaultapp.domain.model.FontSize
 import com.example.quotevaultapp.domain.model.Quote
 import com.example.quotevaultapp.domain.model.QuoteCategory
+import com.example.quotevaultapp.presentation.components.NotificationPermissionDialog
 import com.example.quotevaultapp.presentation.components.QuoteCard
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -86,12 +88,22 @@ fun SettingsScreen(
     val notificationEnabled by settingsViewModel.notificationEnabled.collectAsState()
     val notificationHour by settingsViewModel.notificationHour.collectAsState()
     val notificationMinute by settingsViewModel.notificationMinute.collectAsState()
+    val nextScheduledTime by settingsViewModel.nextScheduledTime.collectAsState()
     val uiState by settingsViewModel.uiState.collectAsState()
     
     var showEditDisplayNameDialog by remember { mutableStateOf(false) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    var showPermissionDialogForTest by remember { mutableStateOf(false) }
     var editDisplayName by remember { mutableStateOf("") }
+    
+    // Update next scheduled time when screen is displayed or notification enabled changes
+    LaunchedEffect(notificationEnabled) {
+        if (notificationEnabled) {
+            settingsViewModel.updateNextScheduledTime()
+        }
+    }
     
     // Handle UI state changes
     LaunchedEffect(uiState) {
@@ -206,6 +218,7 @@ fun SettingsScreen(
             
             // Notifications Section
             SettingsSection(title = "Notifications") {
+                // Enable/Disable notification toggle
                 SettingsItemWithSwitch(
                     title = "Daily Quote Notification",
                     subtitle = if (notificationEnabled) {
@@ -220,9 +233,19 @@ fun SettingsScreen(
                     },
                     checked = notificationEnabled,
                     onCheckedChange = { enabled ->
-                        settingsViewModel.updateNotificationEnabled(enabled)
                         if (enabled) {
-                            showTimePickerDialog = true
+                            // Check if permission is needed (Android 13+)
+                            if (NotificationPermissionHelper.shouldRequestPermission(context)) {
+                                // Show permission dialog
+                                showPermissionDialog = true
+                            } else {
+                                // Permission already granted or not needed (Android 12-)
+                                settingsViewModel.updateNotificationEnabled(true)
+                                showTimePickerDialog = true
+                            }
+                        } else {
+                            // Disable notifications
+                            settingsViewModel.updateNotificationEnabled(false)
                         }
                     },
                     onItemClick = {
@@ -231,6 +254,56 @@ fun SettingsScreen(
                         }
                     }
                 )
+                
+                // Time picker (only visible when notifications are enabled)
+                if (notificationEnabled) {
+                    Divider()
+                    
+                    val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+                    val notificationTimeString = remember(notificationHour, notificationMinute) {
+                        val calendar = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, notificationHour)
+                            set(Calendar.MINUTE, notificationMinute)
+                        }
+                        timeFormat.format(calendar.time)
+                    }
+                    
+                    SettingsItem(
+                        title = "Notification Time",
+                        subtitle = notificationTimeString,
+                        onClick = {
+                            showTimePickerDialog = true
+                        }
+                    )
+                    
+                    // Show next scheduled notification time
+                    if (nextScheduledTime != null) {
+                        Divider()
+                        SettingsItem(
+                            title = "Next Notification",
+                            subtitle = nextScheduledTime ?: "Not scheduled"
+                        )
+                    }
+                    
+                    Divider()
+                    
+                    // Test notification button
+                    Button(
+                        onClick = {
+                            // Check permission first
+                            if (NotificationPermissionHelper.shouldRequestPermission(context)) {
+                                showPermissionDialogForTest = true
+                            } else {
+                                settingsViewModel.sendTestNotification()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Text("Send Test Notification")
+                    }
+                }
             }
             
             // Account Section
@@ -362,6 +435,38 @@ fun SettingsScreen(
             notificationMinute,
             false
         ).show()
+    }
+    
+    // Notification Permission Dialog (for enabling notifications)
+    if (showPermissionDialog) {
+        NotificationPermissionDialog(
+            onGranted = {
+                showPermissionDialog = false
+                // Enable notifications and schedule WorkManager
+                settingsViewModel.updateNotificationEnabled(true)
+                showTimePickerDialog = true
+            },
+            onDenied = {
+                showPermissionDialog = false
+                // User denied permission, keep notifications disabled
+                // Optionally show a message explaining why permission is needed
+            }
+        )
+    }
+    
+    // Notification Permission Dialog (for test notification)
+    if (showPermissionDialogForTest) {
+        NotificationPermissionDialog(
+            onGranted = {
+                showPermissionDialogForTest = false
+                // Permission granted, now send test notification
+                settingsViewModel.sendTestNotification()
+            },
+            onDenied = {
+                showPermissionDialogForTest = false
+                // User denied permission, cannot send test notification
+            }
+        )
     }
     
     // Logout Confirmation Dialog

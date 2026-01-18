@@ -55,20 +55,81 @@ object ShareHelper {
     /**
      * Share quote card as image
      * 
-     * @param context Activity context
+     * @param context Context (should be Activity context for startActivity)
      * @param bitmap Bitmap of the quote card
      */
     fun shareQuoteAsImage(context: Context, bitmap: Bitmap) {
-        val uri = saveImageToCache(context, bitmap)
-        uri?.let {
+        try {
+            android.util.Log.d("ShareHelper", "Starting share image process")
+            val uri = saveImageToCache(context, bitmap)
+            if (uri == null) {
+                android.util.Log.e("ShareHelper", "Failed to save image to cache")
+                return
+            }
+            android.util.Log.d("ShareHelper", "Image saved to cache, URI: $uri")
+            
             val intent = Intent().apply {
                 action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_STREAM, it)
+                putExtra(Intent.EXTRA_STREAM, uri)
                 type = "image/png"
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             
-            context.startActivity(Intent.createChooser(intent, "Share Quote Card"))
+            val chooserIntent = Intent.createChooser(intent, "Share Quote Card").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            
+            // Try to get Activity context if needed
+            val activityContext: Context = run {
+                if (context is android.app.Activity) {
+                    context
+                } else {
+                    var ctx: Context? = context
+                    var activity: android.app.Activity? = null
+                    while (ctx is android.content.ContextWrapper) {
+                        ctx = ctx.baseContext
+                        if (ctx is android.app.Activity) {
+                            activity = ctx
+                            break
+                        }
+                    }
+                    activity ?: context
+                }
+            }
+            
+            android.util.Log.d("ShareHelper", "Starting activity with context: ${activityContext.javaClass.simpleName}")
+            activityContext.startActivity(chooserIntent)
+            android.util.Log.d("ShareHelper", "Share intent started successfully")
+        } catch (e: android.content.ActivityNotFoundException) {
+            android.util.Log.e("ShareHelper", "No activity found to handle share intent: ${e.message}", e)
+        } catch (e: Exception) {
+            android.util.Log.e("ShareHelper", "Failed to share image: ${e.message}", e)
+            e.printStackTrace()
+        }
+    }
+    
+    /**
+     * Share quote card as image
+     * 
+     * @param context Activity context
+     * @param quote Quote to share
+     * @param style Card style to use
+     */
+    suspend fun shareQuoteCard(
+        context: Context,
+        quote: Quote,
+        style: com.example.quotevaultapp.presentation.components.QuoteCardTemplateStyle
+    ) {
+        withContext(Dispatchers.Main) {
+            val bitmap = QuoteCardGenerator.generateBitmap(
+                context = context,
+                quote = quote,
+                style = style,
+                width = 1080,
+                height = 1920
+            )
+            shareQuoteAsImage(context, bitmap)
         }
     }
     
@@ -76,10 +137,44 @@ object ShareHelper {
      * Save quote card image to device gallery
      * 
      * @param context Application context
-     * @param bitmap Bitmap to save
-     * @return Uri of saved image, or null if failed
+     * @param quote Quote to save
+     * @param style Card style to use
+     * @return Result with file path or error
      */
-    suspend fun saveImageToGallery(
+    suspend fun saveQuoteCardToGallery(
+        context: Context,
+        quote: Quote,
+        style: com.example.quotevaultapp.presentation.components.QuoteCardTemplateStyle
+    ): com.example.quotevaultapp.domain.model.Result<String> {
+        return try {
+            // Generate bitmap first
+            val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                QuoteCardGenerator.generateBitmap(
+                    context = context,
+                    quote = quote,
+                    style = style,
+                    width = 1080,
+                    height = 1920
+                )
+            }
+            
+            // Save to gallery
+            val uri = saveImageToGalleryInternal(context, bitmap)
+            if (uri != null) {
+                com.example.quotevaultapp.domain.model.Result.Success(uri.toString())
+            } else {
+                com.example.quotevaultapp.domain.model.Result.Error(Exception("Failed to save image to gallery"))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ShareHelper", "Failed to save quote card to gallery: ${e.message}", e)
+            com.example.quotevaultapp.domain.model.Result.Error(e)
+        }
+    }
+    
+    /**
+     * Internal method to save bitmap to gallery
+     */
+    private suspend fun saveImageToGalleryInternal(
         context: Context,
         bitmap: Bitmap
     ): Uri? = withContext(Dispatchers.IO) {
@@ -111,9 +206,11 @@ object ShareHelper {
                 context.contentResolver.update(uri, contentValues, null, null)
             }
             
-            // Notify media scanner
-            val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri)
-            context.sendBroadcast(intent)
+            // Notify media scanner (Android < 10)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri)
+                context.sendBroadcast(intent)
+            }
             
             uri
         } catch (e: Exception) {

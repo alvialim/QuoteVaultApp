@@ -83,10 +83,10 @@ class NotificationHelper(private val context: Context) {
         }
         
         // Create deep link intent to open quote detail
-        val deepLinkUri = Uri.parse("quotevaultapp://quote/${quote.id}")
+        val deepLinkUri = Uri.parse("quotevault://quote/${quote.id}")
         val intent = Intent(Intent.ACTION_VIEW, deepLinkUri).apply {
             setPackage(context.packageName)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             // Add extras for navigation
             putExtra("quote_id", quote.id)
             putExtra("from_notification", true)
@@ -131,9 +131,14 @@ class NotificationHelper(private val context: Context) {
         // Show notification
         try {
             NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
-            Log.d(TAG, "Daily quote notification shown for quote: ${quote.id}")
+            Log.d(TAG, "Daily quote notification shown successfully")
+            Log.d(TAG, "Notification details - Quote ID: ${quote.id}, Author: ${quote.author}, Text preview: \"${quote.text.take(50)}...\"")
+            Log.d(TAG, "Deep link: quotevault://quote/${quote.id}")
         } catch (e: SecurityException) {
-            Log.e(TAG, "Failed to show notification: ${e.message}", e)
+            Log.e(TAG, "Failed to show notification - SecurityException: ${e.message}", e)
+            Log.e(TAG, "This may indicate missing POST_NOTIFICATIONS permission or notification channel issues")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show notification - Unexpected error: ${e.message}", e)
         }
     }
     

@@ -1,22 +1,13 @@
 package com.example.quotevaultapp.workers
 
-/**
- * DailyQuoteWorker - TEMPORARILY DISABLED (requires Hilt)
- * 
- * This worker is disabled because it uses @HiltWorker annotation.
- * To re-enable:
- * 1. Re-add Hilt dependencies
- * 2. Uncomment the code below
- * 3. Update QuoteVaultApplication to use HiltWorkerFactory
- */
-
-/*
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
-import com.example.quotevaultapp.domain.model.Result
-import com.example.quotevaultapp.domain.repository.QuoteRepository
 import com.example.quotevaultapp.data.remote.supabase.SupabaseQuoteRepository
+import com.example.quotevaultapp.domain.model.Result as DomainResult
+import com.example.quotevaultapp.domain.repository.QuoteRepository
 import com.example.quotevaultapp.util.NotificationHelper
 
 /**
@@ -29,45 +20,48 @@ class DailyQuoteWorker(
 ) : CoroutineWorker(context, params) {
     
     private val quoteRepository: QuoteRepository = SupabaseQuoteRepository()
+    private val notificationHelper: NotificationHelper = NotificationHelper(context)
     
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         return try {
+            Log.d(TAG, "DailyQuoteWorker: Starting work to fetch quote of the day")
+            
             // Fetch quote of the day
             val result = quoteRepository.getQuoteOfTheDay()
             
             when (result) {
-                is com.example.quotevaultapp.domain.model.Result.Success -> {
+                is DomainResult.Success -> {
                     val quote = result.data
+                    Log.d(TAG, "DailyQuoteWorker: Successfully fetched quote: ${quote.id}")
                     
                     // Show notification with quote
-                    NotificationHelper.showDailyQuoteNotification(
-                        context = applicationContext,
-                        quote = quote
-                    )
+                    notificationHelper.showDailyQuoteNotification(quote)
                     
-                    Result.success()
+                    Log.d(TAG, "DailyQuoteWorker: Notification shown successfully")
+                    ListenableWorker.Result.success()
                 }
-                is com.example.quotevaultapp.domain.model.Result.Error -> {
+                is DomainResult.Error -> {
                     // Log error but don't fail - try again next day
-                    android.util.Log.e(
-                        "DailyQuoteWorker",
+                    Log.e(
+                        TAG,
                         "Failed to fetch quote of the day: ${result.exception.message}",
                         result.exception
                     )
                     
                     // Retry if transient error, otherwise success to avoid infinite retries
-                    Result.retry()
+                    // Use retry() for transient errors, success() for permanent errors
+                    ListenableWorker.Result.retry()
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e(
-                "DailyQuoteWorker",
+            Log.e(
+                TAG,
                 "Error in DailyQuoteWorker: ${e.message}",
                 e
             )
             
-            // Retry on exception
-            Result.retry()
+            // Retry on exception (might be network issue)
+            ListenableWorker.Result.retry()
         }
     }
     
@@ -76,6 +70,7 @@ class DailyQuoteWorker(
          * Unique work name for daily quote worker
          */
         const val WORK_NAME = "daily_quote_work"
+        
+        private const val TAG = "DailyQuoteWorker"
     }
 }
-*/

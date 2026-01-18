@@ -27,6 +27,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -41,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quotevaultapp.domain.model.FontSize
@@ -49,6 +52,7 @@ import com.example.quotevaultapp.presentation.components.QuoteCardTemplate
 import com.example.quotevaultapp.presentation.components.QuoteCardTemplateStyle
 import com.example.quotevaultapp.util.QuoteCardGenerator
 import com.example.quotevaultapp.util.ShareHelper
+import com.example.quotevaultapp.util.rememberStoragePermission
 import kotlinx.coroutines.launch
 
 /**
@@ -69,13 +73,60 @@ fun QuoteDetailScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    
+    // Helper function to get Activity context
+    val activityContext: Context = remember(context) {
+        var ctx: Context = context
+        while (ctx is android.content.ContextWrapper) {
+            ctx = ctx.baseContext
+            if (ctx is android.app.Activity) {
+                return@remember ctx
+            }
+        }
+        context
+    }
     var selectedTemplate by remember { mutableStateOf(QuoteCardTemplateStyle.GRADIENT) }
     var isGeneratingBitmap by remember { mutableStateOf(false) }
     var isSavingImage by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
     
     // Use provided quote or load from ViewModel
     val quoteState by viewModel.quote.collectAsState()
     val displayedQuote = quote ?: quoteState
+    
+    // Permission helper for saving to gallery
+    val requestStoragePermission = rememberStoragePermission(
+        onGranted = {
+            // Permission granted, proceed with save
+            scope.launch {
+                isSavingImage = true
+                try {
+                    displayedQuote?.let { q ->
+                        val result = ShareHelper.saveQuoteCardToGallery(
+                            context = context,
+                            quote = q,
+                            style = selectedTemplate
+                        )
+                        when (result) {
+                            is com.example.quotevaultapp.domain.model.Result.Success -> {
+                                android.util.Log.d("QuoteDetail", "Image saved to gallery: ${result.data}")
+                            }
+                            is com.example.quotevaultapp.domain.model.Result.Error -> {
+                                android.util.Log.e("QuoteDetail", "Failed to save image: ${result.exception.message}", result.exception)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("QuoteDetail", "Failed to save image: ${e.message}", e)
+                } finally {
+                    isSavingImage = false
+                }
+            }
+        },
+        onDenied = {
+            android.util.Log.w("QuoteDetail", "Storage permission denied, cannot save image")
+        }
+    )
     
     // Load quote if not provided
     LaunchedEffect(quoteId) {
@@ -93,6 +144,7 @@ fun QuoteDetailScreen(
     }
     
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Quote Detail") },
@@ -173,24 +225,35 @@ fun QuoteDetailScreen(
                 // Share as Image Button
                 Button(
                     onClick = {
+                        android.util.Log.d("QuoteDetail", "Share Image button clicked")
+                        if (displayedQuote == null) {
+                            android.util.Log.w("QuoteDetail", "Cannot share: quote is null")
+                            return@Button
+                        }
                         isGeneratingBitmap = true
                         scope.launch {
                             try {
-                                displayedQuote?.let { q ->
-                                    val bitmap = QuoteCardGenerator.generateBitmap(
-                                        context = context,
-                                        quote = q,
-                                        style = selectedTemplate
-                                    )
-                                }
+                                android.util.Log.d("QuoteDetail", "Generating bitmap with template: $selectedTemplate")
+                                val bitmap = QuoteCardGenerator.generateBitmap(
+                                    context = context,
+                                    quote = displayedQuote!!,
+                                    style = selectedTemplate
+                                )
+                                android.util.Log.d("QuoteDetail", "Bitmap generated successfully, size: ${bitmap.width}x${bitmap.height}")
+                                ShareHelper.shareQuoteAsImage(activityContext, bitmap)
+                                android.util.Log.d("QuoteDetail", "Share intent started")
                             } catch (e: Exception) {
                                 android.util.Log.e("QuoteDetail", "Failed to share image: ${e.message}", e)
+                                e.printStackTrace()
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Failed to share image: ${e.message ?: "Unknown error"}")
+                                }
                             } finally {
                                 isGeneratingBitmap = false
                             }
                         }
                     },
-                    enabled = !isGeneratingBitmap,
+                    enabled = !isGeneratingBitmap && displayedQuote != null,
                     modifier = Modifier.weight(1f)
                 ) {
                     if (isGeneratingBitmap) {
@@ -213,29 +276,16 @@ fun QuoteDetailScreen(
                 // Save to Gallery Button
                 OutlinedButton(
                     onClick = {
-                        isSavingImage = true
-                        scope.launch {
-                            try {
-                                displayedQuote?.let { q ->
-                                    val bitmap = QuoteCardGenerator.generateBitmap(
-                                        context = context,
-                                        quote = q,
-                                        style = selectedTemplate
-                                    )
-                                    val uri = ShareHelper.saveImageToGallery(context, bitmap)
-                                    if (uri != null) {
-                                        // Show success message (could use a snackbar)
-                                        android.util.Log.d("QuoteDetail", "Image saved: $uri")
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                android.util.Log.e("QuoteDetail", "Failed to save image: ${e.message}", e)
-                            } finally {
-                                isSavingImage = false
-                            }
+                        android.util.Log.d("QuoteDetail", "Save button clicked")
+                        if (displayedQuote == null) {
+                            android.util.Log.w("QuoteDetail", "Cannot save: quote is null")
+                            return@OutlinedButton
                         }
+                        // Request permission first (handles all Android versions)
+                        android.util.Log.d("QuoteDetail", "Requesting storage permission")
+                        requestStoragePermission()
                     },
-                    enabled = !isSavingImage,
+                    enabled = !isSavingImage && displayedQuote != null,
                     modifier = Modifier.weight(1f)
                 ) {
                     if (isSavingImage) {

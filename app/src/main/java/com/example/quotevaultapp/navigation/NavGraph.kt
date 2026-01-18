@@ -35,6 +35,7 @@ import com.example.quotevaultapp.presentation.quote.QuoteDetailViewModel
 import com.example.quotevaultapp.presentation.settings.SettingsScreen
 import com.example.quotevaultapp.presentation.splash.SplashScreen
 import kotlinx.coroutines.flow.first
+import com.example.quotevaultapp.navigation.DeepLinks
 
 /**
  * Main navigation graph for the app
@@ -149,6 +150,14 @@ fun QuoteVaultNavGraph(
         // Main App Screens with Bottom Navigation (Nested Graph)
         composable(
             route = Screen.Home.route,
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = DeepLinks.HOME
+                },
+                navDeepLink {
+                    uriPattern = DeepLinks.DAILY_QUOTE
+                }
+            ),
             enterTransition = { fadeInAnimation() },
             exitTransition = { fadeOutAnimation() }
         ) {
@@ -207,7 +216,10 @@ fun QuoteVaultNavGraph(
             arguments = Screen.QuoteDetail.arguments,
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = DeepLink.QUOTE_DETAIL
+                    uriPattern = DeepLinks.QUOTE_DETAIL
+                },
+                navDeepLink {
+                    uriPattern = DeepLink.QUOTE_DETAIL // Legacy support
                 }
             ),
             enterTransition = { slideInFromRight() },

@@ -16,9 +16,14 @@ import com.example.quotevaultapp.domain.model.FontSize
 import com.example.quotevaultapp.domain.model.Result
 import com.example.quotevaultapp.domain.model.User
 import com.example.quotevaultapp.domain.repository.AuthRepository
+import com.example.quotevaultapp.domain.repository.QuoteRepository
 import com.example.quotevaultapp.data.remote.supabase.SupabaseAuthRepository
+import com.example.quotevaultapp.data.remote.supabase.SupabaseQuoteRepository
+import com.example.quotevaultapp.util.NotificationHelper
+import com.example.quotevaultapp.util.NotificationTester
 import com.example.quotevaultapp.util.PreferencesKeys
 import com.example.quotevaultapp.util.WorkScheduler
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,11 +51,12 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
  */
 class SettingsViewModel(
     context: Context,
-    private val authRepository: AuthRepository = SupabaseAuthRepository()
+    private val authRepository: AuthRepository = SupabaseAuthRepository(),
+    private val quoteRepository: QuoteRepository = SupabaseQuoteRepository()
 ) : ViewModel() {
     
     private val dataStore: DataStore<Preferences> = context.dataStore
-    private val context: Context = context.applicationContext
+    private val appContext: Context = context.applicationContext
     
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
@@ -69,6 +75,9 @@ class SettingsViewModel(
     
     private val _notificationMinute = MutableStateFlow(0)
     val notificationMinute: StateFlow<Int> = _notificationMinute.asStateFlow()
+    
+    private val _nextScheduledTime = MutableStateFlow<String?>(null)
+    val nextScheduledTime: StateFlow<String?> = _nextScheduledTime.asStateFlow()
     
     private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -149,6 +158,7 @@ class SettingsViewModel(
     
     fun updateNotificationEnabled(enabled: Boolean) {
         viewModelScope.launch {
+            Log.d("SettingsViewModel", "Updating notification enabled: $enabled")
             dataStore.edit { preferences ->
                 preferences[PreferencesKeys.NOTIFICATION_ENABLED] = enabled
             }
@@ -156,22 +166,75 @@ class SettingsViewModel(
             if (enabled) {
                 val hour = _notificationHour.value
                 val minute = _notificationMinute.value
-                WorkScheduler.scheduleDailyQuoteNotification(context, hour, minute)
+                Log.d("SettingsViewModel", "Enabling notifications and scheduling for ${String.format("%02d:%02d", hour, minute)}")
+                WorkScheduler.scheduleDailyQuoteNotification(appContext, hour, minute)
+                updateNextScheduledTime()
             } else {
-                WorkScheduler.cancelDailyQuoteNotification(context)
+                Log.d("SettingsViewModel", "Disabling notifications and cancelling scheduled work")
+                WorkScheduler.cancelDailyQuoteNotification(appContext)
+                _nextScheduledTime.value = null
             }
         }
     }
     
     fun updateNotificationTime(hour: Int, minute: Int) {
         viewModelScope.launch {
+            Log.d("SettingsViewModel", "User changed notification time to ${String.format("%02d:%02d", hour, minute)}")
             dataStore.edit { preferences ->
                 preferences[PreferencesKeys.NOTIFICATION_HOUR] = hour
                 preferences[PreferencesKeys.NOTIFICATION_MINUTE] = minute
             }
             
             if (_notificationEnabled.value) {
-                WorkScheduler.scheduleDailyQuoteNotification(context, hour, minute)
+                Log.d("SettingsViewModel", "Rescheduling notifications with new time: ${String.format("%02d:%02d", hour, minute)}")
+                WorkScheduler.scheduleDailyQuoteNotification(appContext, hour, minute)
+                updateNextScheduledTime()
+            }
+        }
+    }
+    
+    /**
+     * Send a test notification with the current quote of the day
+     * Useful for debugging notification setup
+     */
+    fun sendTestNotification() {
+        viewModelScope.launch {
+            Log.d("SettingsViewModel", "User requested test notification")
+            try {
+                NotificationTester.testImmediateNotification(appContext)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Error sending test notification: ${e.message}", e)
+            }
+        }
+    }
+    
+    /**
+     * Update next scheduled notification time for display
+     */
+    fun updateNextScheduledTime() {
+        if (_notificationEnabled.value) {
+            val hour = _notificationHour.value
+            val minute = _notificationMinute.value
+            val nextTime = NotificationTester.getNextScheduledTime(appContext, hour, minute)
+            _nextScheduledTime.value = nextTime
+            Log.d("SettingsViewModel", "Next scheduled notification time: $nextTime (hour: $hour, minute: $minute)")
+        } else {
+            _nextScheduledTime.value = null
+        }
+    }
+    
+    init {
+        loadCurrentUser()
+        loadPreferences()
+        
+        // Update next scheduled time when notifications are enabled
+        viewModelScope.launch {
+            _notificationEnabled.collect { enabled ->
+                if (enabled) {
+                    updateNextScheduledTime()
+                } else {
+                    _nextScheduledTime.value = null
+                }
             }
         }
     }
