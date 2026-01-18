@@ -32,22 +32,29 @@ fun SplashScreen(
         // Show splash for minimum time (1 second)
         delay(1000)
         
-        // Check auth state
-        val currentUser = authRepository.getCurrentUser()
+        // Check auth state - this checks Supabase session
+        android.util.Log.d("SplashScreen", "Checking auth state on app launch")
+        val currentUserResult = authRepository.getCurrentUser()
         
-        when (currentUser) {
+        when (currentUserResult) {
             is com.example.quotevaultapp.domain.model.Result.Success -> {
-                if (currentUser.data != null) {
+                val user = currentUserResult.data
+                android.util.Log.d("SplashScreen", "Auth check result: user=${user?.email ?: "null"}")
+                if (user != null) {
+                    android.util.Log.d("SplashScreen", "User is logged in, navigating to Home")
                     onNavigateToHome()
                 } else {
+                    android.util.Log.d("SplashScreen", "No user found, navigating to Login")
                     onNavigateToLogin()
                 }
             }
             is com.example.quotevaultapp.domain.model.Result.Error -> {
                 // On error, navigate to login
+                android.util.Log.w("SplashScreen", "Error checking auth state: ${currentUserResult.exception.message}, navigating to Login")
                 onNavigateToLogin()
             }
             else -> {
+                android.util.Log.w("SplashScreen", "Unknown auth state result, navigating to Login")
                 onNavigateToLogin()
             }
         }

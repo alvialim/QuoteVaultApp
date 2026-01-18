@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -50,20 +51,35 @@ fun QuoteVaultNavGraph(
     // Observe auth state - convert Flow to State
     var authState by remember { mutableStateOf<com.example.quotevaultapp.domain.model.User?>(null) }
     
+    // Load initial auth state synchronously first, then observe changes
     LaunchedEffect(Unit) {
+        // First, get current auth state synchronously
+        val initialAuthResult = authRepository.getCurrentUser()
+        when (initialAuthResult) {
+            is com.example.quotevaultapp.domain.model.Result.Success -> {
+                authState = initialAuthResult.data
+                android.util.Log.d("NavGraph", "Initial auth state loaded: user=${initialAuthResult.data?.email ?: "null"}")
+            }
+            is com.example.quotevaultapp.domain.model.Result.Error -> {
+                authState = null
+                android.util.Log.w("NavGraph", "Error loading initial auth state: ${initialAuthResult.exception.message}")
+            }
+            else -> {
+                authState = null
+            }
+        }
+        
+        // Then observe changes
         authRepository.observeAuthState().collect { user ->
             authState = user
+            android.util.Log.d("NavGraph", "Auth state changed: user=${user?.email ?: "null"}")
         }
     }
     
-    // Determine start destination based on auth state
-    // Include authState in remember keys so it recomputes when auth state changes
-    val initialRoute = remember(startDestination, authState) {
-        if (authState != null && startDestination == Screen.Splash.route) {
-            Screen.Home.route
-        } else {
-            startDestination
-        }
+    // Always start with Splash screen - it will check auth and navigate appropriately
+    // This ensures we properly check auth state on app launch, even after logout
+    val initialRoute = remember(startDestination) {
+        startDestination
     }
     
     NavHost(
@@ -206,7 +222,8 @@ fun QuoteVaultNavGraph(
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                authRepository = authRepository
             )
         }
         
@@ -270,10 +287,17 @@ fun QuoteVaultNavGraph(
             popEnterTransition = { slideInFromLeft() },
             popExitTransition = { slideOutToRight() }
         ) {
+            val context = LocalContext.current
+            val preferencesManager = remember {
+                com.example.quotevaultapp.data.local.PreferencesManager.getInstance(context)
+            }
+            
             SettingsScreen(
                 onBack = {
                     navController.popBackStack()
-                }
+                },
+                preferencesManager = preferencesManager,
+                authRepository = authRepository
             )
         }
     }

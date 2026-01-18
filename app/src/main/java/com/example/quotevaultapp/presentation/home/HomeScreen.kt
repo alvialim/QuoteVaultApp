@@ -101,7 +101,6 @@ import com.example.quotevaultapp.presentation.theme.QuoteTypography
  * @param onQuoteClick Callback when a quote card is clicked
  * @param onFavoriteClick Callback when favorite button is clicked
  * @param onShareClick Callback when share button is clicked
- * @param fontSize User's preferred font size
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,10 +109,11 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onQuoteClick: ((Quote) -> Unit)? = null,
     onFavoriteClick: (Quote) -> Unit = { viewModel.toggleFavorite(it.id) },
-    onShareClick: (Quote) -> Unit = {},
-    fontSize: FontSize = FontSize.MEDIUM
+    onShareClick: (Quote) -> Unit = {}
 ) {
     val context = LocalContext.current
+    // Get font size from CompositionLocal (provided in MainActivity)
+    val fontSize = com.example.quotevaultapp.presentation.theme.LocalFontSize.current
     
     val uiState by viewModel.uiState.collectAsState()
     val quotes by viewModel.quotes.collectAsState()
@@ -294,8 +294,7 @@ fun HomeScreen(
                                         quote = qotdState.data,
                                         onFavoriteClick = { onFavoriteClick(qotdState.data) },
                                         onShareClick = { quote -> ShareHelper.shareQuoteAsText(context, quote) },
-                                        onClick = onQuoteClick,
-                                        fontSize = fontSize
+                                        onClick = onQuoteClick
                                     )
                                 }
                                 is UiState.Error -> {
@@ -397,8 +396,7 @@ fun HomeScreen(
                                         quote = quote,
                                         onFavoriteClick = onFavoriteClick,
                                         onShareClick = { quote -> ShareHelper.shareQuoteAsText(context, quote) },
-                                        onClick = onQuoteClick,
-                                        fontSize = fontSize
+                                        onClick = onQuoteClick
                                     )
                                 }
                                 
@@ -452,9 +450,10 @@ private fun QuoteOfTheDayCard(
     quote: Quote,
     onFavoriteClick: (Quote) -> Unit,
     onShareClick: (Quote) -> Unit,
-    onClick: ((Quote) -> Unit)? = null,
-    fontSize: FontSize
+    onClick: ((Quote) -> Unit)? = null
 ) {
+    // Get font size from CompositionLocal
+    val fontSize = com.example.quotevaultapp.presentation.theme.LocalFontSize.current
     Card(
         modifier = Modifier
             .fillMaxWidth()

@@ -71,16 +71,22 @@ import java.util.Locale
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit = {},
+    preferencesManager: com.example.quotevaultapp.data.local.PreferencesManager? = null,
+    authRepository: com.example.quotevaultapp.domain.repository.AuthRepository? = null,
     viewModel: SettingsViewModel? = null
 ) {
     val context = LocalContext.current
+    
+    // Get singleton instances if not provided
+    val prefsManager = preferencesManager ?: remember {
+        com.example.quotevaultapp.data.local.PreferencesManager.getInstance(context)
+    }
+    val authRepo = authRepository ?: remember {
+        com.example.quotevaultapp.data.remote.supabase.SupabaseAuthRepository()
+    }
+    
     val settingsViewModel: SettingsViewModel = viewModel ?: viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return SettingsViewModel(context.applicationContext) as T
-            }
-        }
+        factory = SettingsViewModelFactory(prefsManager, authRepo)
     )
     val currentUser by settingsViewModel.currentUser.collectAsState()
     val theme by settingsViewModel.theme.collectAsState()
@@ -101,7 +107,7 @@ fun SettingsScreen(
     // Update next scheduled time when screen is displayed or notification enabled changes
     LaunchedEffect(notificationEnabled) {
         if (notificationEnabled) {
-            settingsViewModel.updateNextScheduledTime()
+            settingsViewModel.updateNextScheduledTime(context)
         }
     }
     
@@ -162,7 +168,7 @@ fun SettingsScreen(
                         val themes = AppTheme.values()
                         val currentIndex = themes.indexOf(theme)
                         val nextIndex = (currentIndex + 1) % themes.size
-                        settingsViewModel.updateTheme(themes[nextIndex])
+                        settingsViewModel.setTheme(themes[nextIndex])
                     }
                 )
                 
@@ -180,7 +186,7 @@ fun SettingsScreen(
                         val sizes = FontSize.values()
                         val currentIndex = sizes.indexOf(fontSize)
                         val nextIndex = (currentIndex + 1) % sizes.size
-                        settingsViewModel.updateFontSize(sizes[nextIndex])
+                        settingsViewModel.setFontSize(sizes[nextIndex])
                     }
                 )
                 
@@ -210,7 +216,6 @@ fun SettingsScreen(
                         ),
                         onFavoriteClick = {},
                         onShareClick = {},
-                        fontSize = fontSize,
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -240,12 +245,12 @@ fun SettingsScreen(
                                 showPermissionDialog = true
                             } else {
                                 // Permission already granted or not needed (Android 12-)
-                                settingsViewModel.updateNotificationEnabled(true)
+                                settingsViewModel.updateNotificationEnabled(true, context)
                                 showTimePickerDialog = true
                             }
                         } else {
                             // Disable notifications
-                            settingsViewModel.updateNotificationEnabled(false)
+                            settingsViewModel.updateNotificationEnabled(false, context)
                         }
                     },
                     onItemClick = {
@@ -294,7 +299,7 @@ fun SettingsScreen(
                             if (NotificationPermissionHelper.shouldRequestPermission(context)) {
                                 showPermissionDialogForTest = true
                             } else {
-                                settingsViewModel.sendTestNotification()
+                                settingsViewModel.sendTestNotification(context)
                             }
                         },
                         modifier = Modifier
@@ -428,7 +433,7 @@ fun SettingsScreen(
         TimePickerDialog(
             context,
             { _, hour, minute ->
-                        settingsViewModel.updateNotificationTime(hour, minute)
+                        settingsViewModel.updateNotificationTime(hour, minute, context)
                 showTimePickerDialog = false
             },
             notificationHour,
@@ -443,7 +448,7 @@ fun SettingsScreen(
             onGranted = {
                 showPermissionDialog = false
                 // Enable notifications and schedule WorkManager
-                settingsViewModel.updateNotificationEnabled(true)
+                settingsViewModel.updateNotificationEnabled(true, context)
                 showTimePickerDialog = true
             },
             onDenied = {
@@ -460,7 +465,7 @@ fun SettingsScreen(
             onGranted = {
                 showPermissionDialogForTest = false
                 // Permission granted, now send test notification
-                settingsViewModel.sendTestNotification()
+                settingsViewModel.sendTestNotification(context)
             },
             onDenied = {
                 showPermissionDialogForTest = false

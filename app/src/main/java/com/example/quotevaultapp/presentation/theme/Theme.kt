@@ -4,41 +4,49 @@ import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.example.quotevaultapp.domain.model.AccentColor
 import com.example.quotevaultapp.domain.model.AppTheme
+import com.example.quotevaultapp.domain.model.FontSize
 
 /**
  * QuoteVaultApp Material 3 Theme
- * Supports light, dark, and system theme modes with dynamic colors on Android 12+
+ * Supports light, dark, and system theme modes with multiple accent colors
  * 
- * @param darkTheme Whether to use dark theme (auto-detected from system if not specified)
- * @param appTheme User's theme preference (LIGHT, DARK, or SYSTEM)
- * @param dynamicColor Whether to use dynamic colors on Android 12+ (default: true)
+ * @param theme User's theme preference (LIGHT, DARK, or SYSTEM)
+ * @param accentColor User's accent color preference (PURPLE, BLUE, GREEN)
+ * @param dynamicColor Whether to use dynamic colors on Android 12+ (default: false, uses accent colors instead)
  * @param content The composable content to apply the theme to
  */
 @Composable
 fun QuoteVaultTheme(
-    appTheme: AppTheme = AppTheme.SYSTEM,
-    dynamicColor: Boolean = true,
+    theme: AppTheme = AppTheme.SYSTEM,
+    accentColor: AccentColor = AccentColor.PURPLE,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     // Determine dark theme based on app theme preference
-    val darkTheme = when (appTheme) {
+    val darkTheme = when (theme) {
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
         AppTheme.SYSTEM -> isSystemInDarkTheme()
     }
     
-    // Select color scheme
+    // Select color scheme based on accent color and theme
     val colorScheme = when {
-        // Dynamic colors on Android 12+ (API 31+)
+        // Dynamic colors on Android 12+ (only if enabled)
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) {
@@ -47,9 +55,17 @@ fun QuoteVaultTheme(
                 dynamicLightColorScheme(context)
             }
         }
-        // Fallback to custom color schemes
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        // Use custom color schemes based on accent color
+        darkTheme -> when (accentColor) {
+            AccentColor.PURPLE -> DarkPurpleScheme
+            AccentColor.BLUE -> DarkBlueScheme
+            AccentColor.GREEN -> DarkGreenScheme
+        }
+        else -> when (accentColor) {
+            AccentColor.PURPLE -> LightPurpleScheme
+            AccentColor.BLUE -> LightBlueScheme
+            AccentColor.GREEN -> LightGreenScheme
+        }
     }
     
     // Apply system UI styling (edge-to-edge)
@@ -83,3 +99,8 @@ fun quoteTextStyle(fontSize: com.example.quotevaultapp.domain.model.FontSize) = 
     com.example.quotevaultapp.domain.model.FontSize.MEDIUM -> QuoteTypography.Medium
     com.example.quotevaultapp.domain.model.FontSize.LARGE -> QuoteTypography.Large
 }
+
+/**
+ * CompositionLocal for FontSize to be accessed throughout the composition tree
+ */
+val LocalFontSize = compositionLocalOf { FontSize.MEDIUM }

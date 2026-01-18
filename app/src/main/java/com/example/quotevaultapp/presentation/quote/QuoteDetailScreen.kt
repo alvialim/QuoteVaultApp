@@ -93,7 +93,11 @@ fun QuoteDetailScreen(
     
     // Use provided quote or load from ViewModel
     val quoteState by viewModel.quote.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
     val displayedQuote = quote ?: quoteState
+    
+    android.util.Log.d("QuoteDetail", "Quote detail state: quoteId=$quoteId, displayedQuote=${displayedQuote?.id}, isLoading=$isLoading, error=$error")
     
     // Permission helper for saving to gallery
     // This will request permission at runtime if not granted, then save the image
@@ -102,44 +106,49 @@ fun QuoteDetailScreen(
             // Step 2: Permission granted (or already granted), proceed with save
             android.util.Log.d("QuoteDetail", "Step 2: Storage permission granted, starting save operation")
             scope.launch {
+                // Get current quote state at the time of save (not captured value)
+                val currentQuote = quote ?: viewModel.quote.value
+                android.util.Log.d("QuoteDetail", "Current quote for save: ${currentQuote?.id}")
+                
+                if (currentQuote == null) {
+                    android.util.Log.w("QuoteDetail", "Cannot save: quote is null when permission granted")
+                    Toast.makeText(
+                        context,
+                        "Cannot save: Quote not loaded. Please wait for the quote to load.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
+                
                 isSavingImage = true
                 try {
-                    displayedQuote?.let { q ->
-                        android.util.Log.d("QuoteDetail", "Generating bitmap for save with template: $selectedTemplate")
-                        // Use Activity context for bitmap generation
-                        val activityContext = activityContext ?: context
-                        android.util.Log.d("QuoteDetail", "Using context for save: ${activityContext.javaClass.simpleName}")
-                        val result = ShareHelper.saveQuoteCardToGallery(
-                            context = activityContext,
-                            quote = q,
-                            style = selectedTemplate
-                        )
-                        when (result) {
-                            is com.example.quotevaultapp.domain.model.Result.Success -> {
-                                android.util.Log.d("QuoteDetail", "Image saved to gallery: ${result.data}")
-                                // Show toast message on success
-                                Toast.makeText(
-                                    context,
-                                    "Image saved to Gallery!",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-                            is com.example.quotevaultapp.domain.model.Result.Error -> {
-                                android.util.Log.e("QuoteDetail", "Failed to save image: ${result.exception.message}", result.exception)
-                                Toast.makeText(
-                                    context,
-                                    "Failed to save: ${result.exception.message ?: "Unknown error"}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
+                    android.util.Log.d("QuoteDetail", "Generating bitmap for save with template: $selectedTemplate")
+                    // Use Activity context for bitmap generation
+                    val activityCtx = activityContext ?: context
+                    android.util.Log.d("QuoteDetail", "Using context for save: ${activityCtx.javaClass.simpleName}")
+                    val result = ShareHelper.saveQuoteCardToGallery(
+                        context = activityCtx,
+                        quote = currentQuote,
+                        style = selectedTemplate
+                    )
+                    when (result) {
+                        is com.example.quotevaultapp.domain.model.Result.Success -> {
+                            android.util.Log.d("QuoteDetail", "Image saved to gallery: ${result.data}")
+                            // Show toast message on success
+                            Toast.makeText(
+                                context,
+                                "Image saved to Gallery!",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
-                    } ?: run {
-                        android.util.Log.w("QuoteDetail", "Cannot save: quote is null")
-                        Toast.makeText(
-                            context,
-                            "Cannot save: Quote not available",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        is com.example.quotevaultapp.domain.model.Result.Error -> {
+                            android.util.Log.e("QuoteDetail", "Failed to save image: ${result.exception.message}", result.exception)
+                            Toast.makeText(
+                                context,
+                                "Failed to save: ${result.exception.message ?: "Unknown error"}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("QuoteDetail", "Failed to save image: ${e.message}", e)
@@ -166,16 +175,58 @@ fun QuoteDetailScreen(
     
     // Load quote if not provided
     LaunchedEffect(quoteId) {
+        android.util.Log.d("QuoteDetail", "LaunchedEffect triggered: quoteId=$quoteId, provided quote=${quote?.id}")
         if (quote != null) {
+            android.util.Log.d("QuoteDetail", "Setting provided quote: ${quote.id}")
             viewModel.setQuote(quote)
-        } else if (quoteState == null) {
+        } else if (quoteState == null && !isLoading) {
+            android.util.Log.d("QuoteDetail", "Loading quote from repository: quoteId=$quoteId")
             viewModel.loadQuote(quoteId)
+        } else {
+            android.util.Log.d("QuoteDetail", "Skipping load: quoteState=${quoteState?.id}, isLoading=$isLoading")
         }
     }
     
     // Show loading or error if quote is not available
+    if (displayedQuote == null && isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            com.example.quotevaultapp.presentation.components.LoadingIndicator()
+        }
+        return
+    }
+    
+    // Show error if loading failed
+    if (displayedQuote == null && error != null && !isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                com.example.quotevaultapp.presentation.components.ErrorState(
+                    message = error ?: "Failed to load quote",
+                    onRetry = {
+                        viewModel.loadQuote(quoteId)
+                    }
+                )
+            }
+        }
+        return
+    }
+    
+    // Show loading if quote still null after a moment
     if (displayedQuote == null) {
-        com.example.quotevaultapp.presentation.components.LoadingIndicator()
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            com.example.quotevaultapp.presentation.components.LoadingIndicator()
+        }
         return
     }
     
@@ -312,16 +363,32 @@ fun QuoteDetailScreen(
                 // Save to Gallery Button
                 OutlinedButton(
                     onClick = {
-                        android.util.Log.d("QuoteDetail", "Save button clicked")
-                        if (displayedQuote == null) {
-                            android.util.Log.w("QuoteDetail", "Cannot save: quote is null")
-                            Toast.makeText(
-                                context,
-                                "Cannot save: Quote not available",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        android.util.Log.d("QuoteDetail", "Save button clicked. Quote state: displayedQuote=${displayedQuote?.id}, isLoading=$isLoading")
+                        
+                        // Check if quote is available before requesting permission
+                        val currentQuote = displayedQuote
+                        if (currentQuote == null) {
+                            android.util.Log.w("QuoteDetail", "Cannot save: quote is null when button clicked")
+                            if (isLoading) {
+                                Toast.makeText(
+                                    context,
+                                    "Please wait for the quote to load",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Cannot save: Quote not available. ${error ?: "Please try again."}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                // Try to reload the quote
+                                if (quoteId.isNotEmpty()) {
+                                    viewModel.loadQuote(quoteId)
+                                }
+                            }
                             return@OutlinedButton
                         }
+                        
                         // Step 1: Request permission at runtime first
                         // This will show system permission dialog if not granted
                         // Step 2: Save will happen automatically after permission is granted

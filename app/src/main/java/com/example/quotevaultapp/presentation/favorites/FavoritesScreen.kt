@@ -90,10 +90,11 @@ import kotlin.math.roundToInt
 fun FavoritesScreen(
     viewModel: FavoritesViewModel = viewModel(),
     onQuoteClick: ((Quote) -> Unit)? = null,
-    onShareClick: (Quote) -> Unit = {},
-    fontSize: FontSize = FontSize.MEDIUM
+    onShareClick: (Quote) -> Unit = {}
 ) {
     val context = LocalContext.current
+    // Get font size from CompositionLocal (provided in MainActivity)
+    val fontSize = com.example.quotevaultapp.presentation.theme.LocalFontSize.current
     
     val uiState by viewModel.uiState.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
@@ -324,8 +325,7 @@ fun FavoritesScreen(
                                         onDelete = { viewModel.removeFromFavorites(quote.id) },
                                         onFavoriteClick = { viewModel.toggleFavorite(quote.id) },
                                         onShareClick = { quote -> ShareHelper.shareQuoteAsText(context, quote) },
-                                        onClick = onQuoteClick,
-                                        fontSize = fontSize
+                                        onClick = onQuoteClick
                                     )
                                 }
                             }
@@ -352,8 +352,7 @@ private fun SwipeableQuoteCard(
     onDelete: () -> Unit,
     onFavoriteClick: (String) -> Unit,
     onShareClick: (Quote) -> Unit,
-    onClick: ((Quote) -> Unit)?,
-    fontSize: FontSize
+    onClick: ((Quote) -> Unit)?
 ) {
     val swipeThreshold = 150.dp
     val density = LocalDensity.current
@@ -397,7 +396,6 @@ private fun SwipeableQuoteCard(
             onFavoriteClick = { onFavoriteClick(quote.id) },
             onShareClick = onShareClick,
             onClick = onClick,
-            fontSize = fontSize,
             modifier = Modifier
                 .offset {
                     IntOffset(

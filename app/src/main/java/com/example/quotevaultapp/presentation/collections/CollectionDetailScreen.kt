@@ -84,7 +84,6 @@ import kotlin.math.roundToInt
  * @param onQuoteClick Callback when a quote is clicked
  * @param onShareClick Callback when share button is clicked
  * @param onBack Callback to navigate back
- * @param fontSize User's preferred font size
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,8 +93,7 @@ fun CollectionDetailScreen(
     viewModel: CollectionDetailViewModel = viewModel(),
     onQuoteClick: ((Quote) -> Unit)? = null,
     onShareClick: (Quote) -> Unit = {},
-    onBack: () -> Unit = {},
-    fontSize: FontSize = FontSize.MEDIUM
+    onBack: () -> Unit = {}
 ) {
     // Set collection if provided, then load quotes
     LaunchedEffect(collectionId, collection) {
@@ -264,8 +262,7 @@ fun CollectionDetailScreen(
                                     onDelete = { viewModel.removeQuote(quote.id) },
                                     onFavoriteClick = { /* Handle favorite in collection detail */ },
                                     onShareClick = { onShareClick(quote) },
-                                    onClick = onQuoteClick,
-                                    fontSize = fontSize
+                                    onClick = onQuoteClick
                                 )
                             }
                         }
@@ -328,8 +325,7 @@ private fun SwipeableQuoteCard(
     onDelete: () -> Unit,
     onFavoriteClick: (String) -> Unit,
     onShareClick: (Quote) -> Unit,
-    onClick: ((Quote) -> Unit)?,
-    fontSize: FontSize
+    onClick: ((Quote) -> Unit)?
 ) {
     val swipeThreshold = 150.dp
     val density = LocalDensity.current
@@ -369,7 +365,6 @@ private fun SwipeableQuoteCard(
             onFavoriteClick = { onFavoriteClick(quote.id) },
             onShareClick = onShareClick,
             onClick = onClick,
-            fontSize = fontSize,
             modifier = Modifier
                 .offset {
                     IntOffset(animatedOffset.roundToInt(), 0)

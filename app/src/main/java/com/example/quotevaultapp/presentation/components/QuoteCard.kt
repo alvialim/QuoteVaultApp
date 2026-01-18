@@ -35,18 +35,19 @@ import androidx.compose.ui.unit.dp
 import com.example.quotevaultapp.domain.model.Quote
 import com.example.quotevaultapp.domain.model.QuoteCategory
 import com.example.quotevaultapp.presentation.theme.AppShapes
+import com.example.quotevaultapp.presentation.theme.LocalFontSize
 import com.example.quotevaultapp.presentation.theme.QuoteTypography
 import com.example.quotevaultapp.presentation.theme.quoteTextStyle
 import com.example.quotevaultapp.domain.model.FontSize
 
 /**
  * Reusable quote card component with favorite/share actions and category badge
+ * Uses LocalFontSize from CompositionLocal for font size
  * 
  * @param quote The quote to display
  * @param onFavoriteClick Callback when favorite button is clicked
  * @param onShareClick Callback when share button is clicked
  * @param onClick Callback when the card itself is clicked (optional)
- * @param fontSize User's preferred font size for quote text
  * @param modifier Modifier for the card
  */
 @Composable
@@ -55,9 +56,10 @@ fun QuoteCard(
     onFavoriteClick: (Quote) -> Unit,
     onShareClick: (Quote) -> Unit,
     onClick: ((Quote) -> Unit)? = null,
-    fontSize: FontSize = FontSize.MEDIUM,
     modifier: Modifier = Modifier
 ) {
+    // Get font size from CompositionLocal
+    val fontSize = LocalFontSize.current
     Card(
         modifier = modifier
             .fillMaxWidth()
