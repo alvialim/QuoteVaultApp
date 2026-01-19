@@ -122,6 +122,9 @@ class LoginViewModel(
                         ?: "An error occurred during login. Please try again."
                     _loginState.value = LoginState.Error(errorMessage)
                 }
+                is Result.Loading -> {
+                    _loginState.value = LoginState.Loading
+                }
             }
         }
     }

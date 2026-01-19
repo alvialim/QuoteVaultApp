@@ -149,6 +149,9 @@ fun QuoteDetailScreen(
                                 Toast.LENGTH_LONG
                             ).show()
                         }
+                        is com.example.quotevaultapp.domain.model.Result.Loading -> {
+                            // Loading state
+                        }
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("QuoteDetail", "Failed to save image: ${e.message}", e)

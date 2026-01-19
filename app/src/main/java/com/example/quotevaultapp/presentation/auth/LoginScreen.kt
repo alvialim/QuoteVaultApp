@@ -164,7 +164,8 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Stitch Design: Improved spacing between fields
+                Spacer(modifier = Modifier.height(20.dp))
                 
                 // Password Field
                 OutlinedTextField(
@@ -224,7 +225,8 @@ fun LoginScreen(
                     Text("Forgot password?")
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                // Stitch Design: Better spacing before button
+                Spacer(modifier = Modifier.height(28.dp))
                 
                 // Error Message
                 if (errorMessage != null) {
@@ -238,6 +240,7 @@ fun LoginScreen(
                 }
                 
                 // Login Button
+                // Stitch Design: Enhanced button with better elevation
                 Button(
                     onClick = {
                         viewModel.onLoginClick()
@@ -245,7 +248,12 @@ fun LoginScreen(
                     enabled = isFormValid && !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(56.dp),
+                    elevation = androidx.compose.material3.ButtonDefaults.buttonElevation(
+                        defaultElevation = 3.dp,
+                        pressedElevation = 6.dp,
+                        disabledElevation = 0.dp
+                    )
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(

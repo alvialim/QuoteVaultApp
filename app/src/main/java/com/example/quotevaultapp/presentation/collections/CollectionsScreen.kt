@@ -127,11 +127,12 @@ fun CollectionsScreen(
                     )
                 }
                 else -> {
+                    // Stitch Design: Enhanced grid spacing
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 160.dp),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        contentPadding = PaddingValues(20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         items(
                             items = collections,
@@ -219,6 +220,7 @@ private fun CollectionCard(
     collection: Collection,
     onClick: () -> Unit
 ) {
+    // Stitch Design: Enhanced collection card elevation and shadows
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -226,17 +228,21 @@ private fun CollectionCard(
             .clickable(onClick = onClick),
         shape = AppShapes.quoteCard,
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp
+            defaultElevation = 4.dp,
+            pressedElevation = 8.dp,
+            hoveredElevation = 6.dp,
+            focusedElevation = 6.dp,
+            disabledElevation = 0.dp
         ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
+        // Stitch Design: Improved spacing in collection card
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Collection Icon

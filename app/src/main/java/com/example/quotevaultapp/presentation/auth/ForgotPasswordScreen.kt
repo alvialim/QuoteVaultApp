@@ -137,7 +137,8 @@ fun ForgotPasswordScreen(
                         textAlign = TextAlign.Center
                     )
                     
-                    Spacer(modifier = Modifier.height(48.dp))
+                    // Stitch Design: Improved spacing
+                    Spacer(modifier = Modifier.height(52.dp))
                     
                     // Email Field
                     OutlinedTextField(
@@ -190,6 +191,7 @@ fun ForgotPasswordScreen(
                     }
                     
                     // Send Reset Link Button
+                    // Stitch Design: Enhanced button with better elevation
                     Button(
                         onClick = {
                             handleSendReset(email, viewModel) {
@@ -200,7 +202,12 @@ fun ForgotPasswordScreen(
                         enabled = isEmailValid && !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
+                            .height(56.dp),
+                        elevation = androidx.compose.material3.ButtonDefaults.buttonElevation(
+                            defaultElevation = 3.dp,
+                            pressedElevation = 6.dp,
+                            disabledElevation = 0.dp
+                        )
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(

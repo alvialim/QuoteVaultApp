@@ -141,7 +141,8 @@ fun SignUpScreen(
                     textAlign = TextAlign.Center
                 )
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                // Stitch Design: Improved spacing
+                Spacer(modifier = Modifier.height(40.dp))
                 
                 // Display Name Field (Optional)
                 OutlinedTextField(
@@ -168,7 +169,8 @@ fun SignUpScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Stitch Design: Improved spacing between fields
+                Spacer(modifier = Modifier.height(20.dp))
                 
                 // Email Field
                 OutlinedTextField(
@@ -197,7 +199,7 @@ fun SignUpScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 
                 // Password Field
                 OutlinedTextField(
@@ -250,7 +252,7 @@ fun SignUpScreen(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 
                 // Confirm Password Field
                 OutlinedTextField(
@@ -300,7 +302,8 @@ fun SignUpScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                // Stitch Design: Better spacing before button
+                Spacer(modifier = Modifier.height(28.dp))
                 
                 // Error Message
                 if (errorMessage != null) {
@@ -314,6 +317,7 @@ fun SignUpScreen(
                 }
                 
                 // Sign Up Button
+                // Stitch Design: Enhanced button with better elevation
                 Button(
                     onClick = {
                         android.util.Log.d("SignUpScreen", "Sign Up button clicked")
@@ -323,7 +327,12 @@ fun SignUpScreen(
                     enabled = isFormValid && !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(56.dp),
+                    elevation = androidx.compose.material3.ButtonDefaults.buttonElevation(
+                        defaultElevation = 3.dp,
+                        pressedElevation = 6.dp,
+                        disabledElevation = 0.dp
+                    )
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(

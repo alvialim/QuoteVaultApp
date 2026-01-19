@@ -216,6 +216,9 @@ class SignUpViewModel(
                                 // Still consider it success since user is created
                                 _signUpState.value = SignUpState.Success(user)
                             }
+                            is Result.Loading -> {
+                                // Should not happen for profile update, but handle it
+                            }
                         }
                     } else {
                         _signUpState.value = SignUpState.Success(user)
@@ -225,6 +228,9 @@ class SignUpViewModel(
                     val errorMessage = result.exception.message 
                         ?: "An error occurred during sign up. Please try again."
                     _signUpState.value = SignUpState.Error(errorMessage)
+                }
+                is Result.Loading -> {
+                    _signUpState.value = SignUpState.Loading
                 }
             }
         }

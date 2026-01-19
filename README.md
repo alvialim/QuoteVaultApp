@@ -229,9 +229,11 @@ Before you begin, ensure you have:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/QuoteVaultApp.git
+git clone https://github.com/[yourusername]/QuoteVaultApp.git
 cd QuoteVaultApp
 ```
+
+**Note**: Replace `[yourusername]` with your actual GitHub username.
 
 ### Step 2: Configure Supabase
 
@@ -259,9 +261,9 @@ cd QuoteVaultApp
 
 4. **Set Up Database Schema**
    - Open Supabase Dashboard → **SQL Editor**
-   - Run the SQL script from `database/schema.sql`
+   - Run the SQL script from `docs/supabase-schema.sql` (or `database/schema.sql`)
    - This creates all necessary tables, RLS policies, and indexes
-   - Optionally, run `database/seed_quotes.sql` to populate initial quotes
+   - Optionally, run `docs/supabase-seed.sql` (or `database/seed_quotes.sql`) to populate initial quotes
 
    For detailed database setup, see [README-SUPABASE-SETUP.md](README-SUPABASE-SETUP.md)
 
@@ -341,9 +343,12 @@ QuoteVaultApp/
 │   │   │   └── AndroidManifest.xml    # App manifest
 │   │   └── test/                      # Unit tests
 │   └── build.gradle.kts               # App-level build config
-├── database/                          # Database scripts
+├── database/                          # Database scripts (legacy)
 │   ├── schema.sql                     # Database schema
 │   └── seed_quotes.sql                # Seed data
+├── docs/                              # Documentation and SQL scripts
+│   ├── supabase-schema.sql            # Full database schema (recommended)
+│   └── supabase-seed.sql              # 100+ sample quotes (recommended)
 ├── gradle/                            # Gradle configuration
 │   └── libs.versions.toml            # Version catalog
 ├── build.gradle.kts                   # Project-level build config
@@ -352,7 +357,8 @@ QuoteVaultApp/
 ├── README.md                          # This file
 ├── README-SUPABASE-SETUP.md          # Supabase setup guide
 ├── CODE_REVIEW.md                     # Code review summary
-└── POLISH_SUMMARY.md                  # Polish improvements summary
+├── POLISH_SUMMARY.md                  # Polish improvements summary
+└── LICENSE                            # MIT License
 ```
 
 ### Key Directories Explained
@@ -371,18 +377,20 @@ QuoteVaultApp/
 ## 📸 Screenshots
 
 ### Authentication Flow
-<!-- Add screenshots here -->
+![Login Screen](app/screenshots/login_screen.png)
 > **Login Screen** | **Sign Up Screen** | **Forgot Password Screen**
 
 ### Main App
-<!-- Add screenshots here -->
-> **Home Screen** | **Favorites Screen** | **Collections Screen** | **Profile Screen**
+![Home Screen](app/screenshots/home_screen.png) | ![Favorites Screen](app/screenshots/favorite_screen.png)
+> **Home Screen** | **Favorites Screen**
 
-### Features
-<!-- Add screenshots here -->
-> **Quote Detail** | **Settings** | **Quote Sharing** | **Daily Quote Widget**
+![Collections Screen](app/screenshots/collection_screen.png) | ![Settings Screen](app/screenshots/settings_screen.png)
+> **Collections Screen** | **Settings Screen**
 
-*Screenshots coming soon...*
+### Design System
+This app follows the [Google Stitch Design System](https://stitch.withgoogle.com/projects/11692299594384479929) with Material Design 3 components, ensuring a modern and consistent user experience.
+
+*More screenshots coming soon...*
 
 ---
 
@@ -560,8 +568,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For questions, issues, or contributions:
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/QuoteVaultApp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/QuoteVaultApp/discussions)
+- **Issues**: [GitHub Issues](https://github.com/[yourusername]/QuoteVaultApp/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/[yourusername]/QuoteVaultApp/discussions)
+- **Stitch Design**: [View Design System](https://stitch.withgoogle.com/projects/11692299594384479929)
+
+**Note**: Replace `[yourusername]` with your actual GitHub username.
 
 ---
 

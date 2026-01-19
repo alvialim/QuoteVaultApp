@@ -55,14 +55,16 @@ fun QuoteVaultTheme(
                 dynamicLightColorScheme(context)
             }
         }
-        // Use custom color schemes based on accent color
+        // Use Stitch color schemes based on accent color
+        // Stitch design uses dark theme by default (#18181B background)
         darkTheme -> when (accentColor) {
-            AccentColor.PURPLE -> DarkPurpleScheme
-            AccentColor.BLUE -> DarkBlueScheme
-            AccentColor.GREEN -> DarkGreenScheme
+            AccentColor.PURPLE -> StitchDarkScheme // Default: Purple primary
+            AccentColor.BLUE -> LightBlueScheme // Cyan primary
+            AccentColor.GREEN -> DarkGreenScheme // Green primary
         }
         else -> when (accentColor) {
-            AccentColor.PURPLE -> LightPurpleScheme
+            // Light theme uses StitchLightScheme for quote cards on dark background
+            AccentColor.PURPLE -> StitchLightScheme // White cards for contrast
             AccentColor.BLUE -> LightBlueScheme
             AccentColor.GREEN -> LightGreenScheme
         }

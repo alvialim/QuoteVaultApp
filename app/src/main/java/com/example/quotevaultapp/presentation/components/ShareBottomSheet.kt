@@ -85,6 +85,9 @@ fun ShareBottomSheet(
                             is com.example.quotevaultapp.domain.model.Result.Error -> {
                                 android.util.Log.e("ShareBottomSheet", "Error saving to gallery: ${result.exception.message}", result.exception)
                             }
+                            is com.example.quotevaultapp.domain.model.Result.Loading -> {
+                                // Loading state
+                            }
                         }
                     } catch (e: Exception) {
                         android.util.Log.e("ShareBottomSheet", "Error saving to gallery: ${e.message}", e)

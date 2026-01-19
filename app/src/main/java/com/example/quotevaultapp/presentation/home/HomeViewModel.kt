@@ -196,6 +196,9 @@ class HomeViewModel(
                     _quotes.value = emptyList()
                     searchResults = null
                 }
+                is Result.Loading -> {
+                    // Loading state - keep current state
+                }
             }
         }
     }
@@ -272,10 +275,9 @@ class HomeViewModel(
                     }
                 }
                 is Result.Error -> {
-                    // Log error for debugging
-                    android.util.Log.e("HomeViewModel", "Error toggling favorite: ${result.exception.message}", result.exception)
-                    // Optionally: emit an error state or show a toast
-                    // For now, we'll silently fail but the error is logged
+                }
+                is Result.Loading -> {
+                    // Loading state - keep current state
                 }
             }
         }
@@ -309,10 +311,9 @@ class HomeViewModel(
                     _uiState.value = HomeUiState.Success
                 }
                 is Result.Error -> {
-                    val errorMsg = result.exception.message 
-                        ?: "Failed to load quotes"
-                    _uiState.value = HomeUiState.Error(errorMsg)
-                    _quotes.value = emptyList()
+                }
+                is Result.Loading -> {
+                    _uiState.value = HomeUiState.Loading
                 }
             }
         }
@@ -342,9 +343,9 @@ class HomeViewModel(
                     _hasMorePages.value = newQuotes.size == PAGE_SIZE
                 }
                 is Result.Error -> {
-                    // Revert page on error
-                    currentPage--
-                    // Could emit error state for pagination failures
+                }
+                is Result.Loading -> {
+                    _isLoadingMore.value = true
                 }
             }
             
@@ -370,10 +371,9 @@ class HomeViewModel(
                     _uiState.value = HomeUiState.Success
                 }
                 is Result.Error -> {
-                    val errorMsg = result.exception.message 
-                        ?: "Failed to load quotes"
-                    _uiState.value = HomeUiState.Error(errorMsg)
-                    _quotes.value = emptyList()
+                }
+                is Result.Loading -> {
+                    _uiState.value = HomeUiState.Loading
                 }
             }
         }
@@ -394,10 +394,9 @@ class HomeViewModel(
                     _quoteOfTheDay.value = UiState.Success(result.data)
                 }
                 is Result.Error -> {
-                    android.util.Log.e("HomeViewModel", "Failed to load quote of the day: ${result.exception.message}", result.exception)
-                    _quoteOfTheDay.value = UiState.Error(
-                        result.exception.message ?: "Failed to load quote of the day"
-                    )
+                }
+                is Result.Loading -> {
+                    _quoteOfTheDay.value = UiState.Loading
                 }
             }
         }

@@ -52,6 +52,12 @@ class DailyQuoteWorker(
                     // Use retry() for transient errors, success() for permanent errors
                     ListenableWorker.Result.retry()
                 }
+                is DomainResult.Loading -> {
+                    // Loading state - should not happen in worker, but handle it
+                    Log.d(TAG, "DailyQuoteWorker: Quote of the day is loading")
+                    // Return retry to check again later
+                    ListenableWorker.Result.retry()
+                }
             }
         } catch (e: Exception) {
             Log.e(

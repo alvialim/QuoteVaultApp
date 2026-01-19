@@ -112,6 +112,9 @@ class CollectionDetailViewModel(
                         ?: "Failed to load collection"
                     _uiState.value = CollectionDetailUiState.Error(errorMsg)
                 }
+                is Result.Loading -> {
+                    // Loading state
+                }
             }
         }
     }
@@ -160,6 +163,9 @@ class CollectionDetailViewModel(
                         result.exception.message ?: "Failed to add quote"
                     )
                 }
+                is Result.Loading -> {
+                    // Loading state
+                }
             }
         }
     }
@@ -191,6 +197,9 @@ class CollectionDetailViewModel(
                     _uiState.value = CollectionDetailUiState.Error(
                         result.exception.message ?: "Failed to remove quote"
                     )
+                }
+                is Result.Loading -> {
+                    // Loading state
                 }
             }
         }
@@ -231,6 +240,9 @@ class CollectionDetailViewModel(
                     _uiState.value = CollectionDetailUiState.Error(
                         result.exception.message ?: "Failed to delete collection"
                     )
+                }
+                is Result.Loading -> {
+                    // Loading state
                 }
             }
         }
@@ -299,6 +311,9 @@ class CollectionDetailViewModel(
                 }
                 is Result.Error -> {
                     _availableQuotes.value = emptyList()
+                }
+                is Result.Loading -> {
+                    // Loading state
                 }
             }
             _isLoadingQuotes.value = false
@@ -372,6 +387,9 @@ class CollectionDetailViewModel(
                 is Result.Error -> {
                     android.util.Log.e("CollectionDetailViewModel", "Error searching quotes: ${result.exception.message}", result.exception)
                     _availableQuotes.value = emptyList()
+                }
+                is Result.Loading -> {
+                    // Loading state
                 }
             }
             _isLoadingQuotes.value = false

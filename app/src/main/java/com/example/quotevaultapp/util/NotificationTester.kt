@@ -46,6 +46,9 @@ object NotificationTester {
                 is com.example.quotevaultapp.domain.model.Result.Error -> {
                     Log.e(TAG, "Failed to fetch quote for test notification: ${result.exception.message}", result.exception)
                 }
+                is com.example.quotevaultapp.domain.model.Result.Loading -> {
+                    Log.d(TAG, "Loading quote of the day for test notification...")
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error showing test notification: ${e.message}", e)

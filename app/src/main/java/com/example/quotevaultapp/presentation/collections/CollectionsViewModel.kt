@@ -114,6 +114,9 @@ class CollectionsViewModel(
                         result.exception.message ?: "Failed to create collection"
                     )
                 }
+                is Result.Loading -> {
+                    // Loading state
+                }
             }
         }
     }

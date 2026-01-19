@@ -202,12 +202,13 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 // Search Field (Simple TextField - doesn't expand to full screen)
+                // Stitch Design: Increased spacing and padding
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     placeholder = { Text("Search quotes or authors...") },
                     leadingIcon = {
                         Icon(
@@ -234,12 +235,13 @@ fun HomeScreen(
                 )
                 
                 // Category Tabs (Horizontal Scroll)
+                // Stitch Design: Improved spacing between chips
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 12.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // All category
                     item {
@@ -283,7 +285,7 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .padding(horizontal = 16.dp, vertical = 16.dp)
                         ) {
                             when (val qotdState = quoteOfTheDay) {
                                 is UiState.Loading -> {
@@ -326,8 +328,8 @@ fun HomeScreen(
                         isInitialLoading -> {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 items(5) {
                                     QuoteCardShimmer()
@@ -384,8 +386,8 @@ fun HomeScreen(
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 // Quotes List
                                 items(
@@ -469,16 +471,21 @@ private fun QuoteOfTheDayCard(
                 }
             ),
         shape = AppShapes.quoteCardElevated,
+        // Stitch Design: Enhanced elevation for prominence (QOTD card)
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp,
-            pressedElevation = 12.dp
+            defaultElevation = 12.dp,
+            pressedElevation = 16.dp,
+            hoveredElevation = 14.dp,
+            focusedElevation = 14.dp,
+            disabledElevation = 0.dp
         ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
+        // Stitch Design: More visible border for QOTD card
         border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+            width = 2.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
         )
     ) {
         Box(
@@ -496,24 +503,26 @@ private fun QuoteOfTheDayCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(28.dp)
             ) {
                 // Badge/Chip for "Quote of the Day"
+                // Stitch Design: Enhanced badge styling
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     Text(
                         text = "✨ Quote of the Day",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Quote text (larger font based on fontSize preference)
                 val quoteTextSize = when (fontSize) {
@@ -533,9 +542,10 @@ private fun QuoteOfTheDayCard(
                     fontWeight = FontWeight.Normal
                 )
                 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 
                 // Author and action buttons
+                // Stitch Design: Better spacing between author and actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -546,11 +556,11 @@ private fun QuoteOfTheDayCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontSize = androidx.compose.ui.unit.TextUnit(16f, androidx.compose.ui.unit.TextUnitType.Sp)
                         ),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Medium
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                        fontWeight = FontWeight.SemiBold
                     )
                     
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         IconButton(
                             onClick = { onFavoriteClick(quote) },
                             modifier = Modifier.semantics {
@@ -593,8 +603,10 @@ private fun QuoteOfTheDayCard(
 }
 
 /**
- * Category chip component
+ * Category chip component - Stitch Design enhanced
+ * Better elevation, spacing, and visual feedback
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryChip(
     category: QuoteCategory?,
@@ -605,10 +617,29 @@ private fun CategoryChip(
     InputChip(
         selected = isSelected,
         onClick = onClick,
-        label = { Text(label) },
+        label = { 
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+            ) 
+        },
+        // Stitch Design: Enhanced chip colors and styling
         colors = InputChipDefaults.inputChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        // Stitch Design: Better border styling
+        border = InputChipDefaults.inputChipBorder(
+            enabled = true,
+            selected = isSelected,
+            selectedBorderColor = MaterialTheme.colorScheme.primary,
+            borderColor = MaterialTheme.colorScheme.outline,
+            selectedBorderWidth = 2.dp,
+            borderWidth = 1.dp
         )
     )
 }

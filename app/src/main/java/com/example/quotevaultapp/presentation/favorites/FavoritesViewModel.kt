@@ -174,6 +174,9 @@ class FavoritesViewModel(
                         result.exception.message ?: "Failed to remove from favorites"
                     )
                 }
+                is Result.Loading -> {
+                    // Loading state
+                }
             }
         }
     }
@@ -203,6 +206,9 @@ class FavoritesViewModel(
                     _uiState.value = FavoritesUiState.Error(
                         result.exception.message ?: "Failed to update favorite"
                     )
+                }
+                is Result.Loading -> {
+                    // Loading state
                 }
             }
         }

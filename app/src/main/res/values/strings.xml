@@ -133,8 +133,7 @@
     <string name="settings_profile_picture_change">Tap to change</string>
     
     <string name="settings_sign_out">Sign Out</string>
-    <string name="settings_sign_out_confirm">Are you sure you want to sign out?</string>
-    
+
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_privacy_policy_description">View our privacy policy</string>
@@ -191,4 +190,32 @@
     <string name="no_results">No results found</string>
     <string name="pull_to_refresh">Pull to refresh</string>
     <string name="swipe_to_delete">Swipe to delete</string>
+    
+    <!-- Home Screen Specific -->
+    <string name="home_quotevault_title">QuoteVault</string>
+    <string name="home_search_quotes_authors">Search quotes or authors…</string>
+    <string name="home_loading_more_quotes">Loading more quotes…</string>
+    <string name="home_failed_load_quotes">Failed to load quotes</string>
+    
+    <!-- Favorites Screen Specific -->
+    <string name="favorites_search_favorites">Search favorites…</string>
+    
+    <!-- Settings Screen Specific -->
+    <string name="settings_send_test_notification">Send Test Notification</string>
+    <string name="settings_edit_display_name_title">Edit Display Name</string>
+    <string name="settings_display_name_label">Display Name</string>
+    <string name="settings_sign_out_title">Sign Out</string>
+    <string name="settings_sign_out_confirm">Are you sure you want to sign out?</string>
+    
+    <!-- Collections Screen Specific -->
+    <string name="collections_create_collection">Create Collection</string>
+    <string name="collections_name_label">Name</string>
+    <string name="collections_name_hint">e.g., Morning Motivation</string>
+    <string name="collections_description_label">Description (Optional)</string>
+    <string name="collections_description_hint">Add a description for this collection</string>
+    
+    <!-- Forgot Password Screen -->
+    <string name="forgot_password_email_label">Email</string>
+    <string name="forgot_password_email_placeholder">Enter your email</string>
+    <string name="forgot_password_invalid_email">Please enter a valid email address</string>
 </resources>

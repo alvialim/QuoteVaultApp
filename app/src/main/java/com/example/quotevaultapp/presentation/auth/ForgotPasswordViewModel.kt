@@ -89,6 +89,9 @@ class ForgotPasswordViewModel(
                         ?: "An error occurred while sending the reset link. Please try again."
                     _forgotPasswordState.value = ForgotPasswordState.Error(errorMessage)
                 }
+                is Result.Loading -> {
+                    _forgotPasswordState.value = ForgotPasswordState.Loading
+                }
             }
         }
     }

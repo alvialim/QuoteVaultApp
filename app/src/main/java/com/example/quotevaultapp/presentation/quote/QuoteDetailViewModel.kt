@@ -44,6 +44,9 @@ class QuoteDetailViewModel(
                     is Result.Error -> {
                         _error.value = result.exception.message ?: "Failed to load quote"
                     }
+                    is Result.Loading -> {
+                        // Loading state
+                    }
                 }
             } catch (e: Exception) {
                 _error.value = "Error loading quote: ${e.message}"

@@ -209,6 +209,9 @@ class SettingsViewModel(
                 is Result.Error -> {
                     _uiState.value = SettingsUiState.Error(result.exception.message ?: "Failed to update display name")
                 }
+                is Result.Loading -> {
+                    // Loading state
+                }
             }
         }
     }
@@ -222,6 +225,9 @@ class SettingsViewModel(
                 }
                 is Result.Error -> {
                     _uiState.value = SettingsUiState.Error(result.exception.message ?: "Failed to sign out")
+                }
+                is Result.Loading -> {
+                    // Loading state
                 }
             }
         }

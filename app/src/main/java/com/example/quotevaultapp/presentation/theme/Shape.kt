@@ -5,64 +5,74 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * Material 3 Shapes for QuoteVaultApp
- * Custom shapes for quote cards and UI elements
+ * Stitch Design Shapes
+ * Exact border radius values from Google Stitch design specifications
  */
 val Shapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(28.dp)
+    medium = RoundedCornerShape(16.dp), // Stitch: 16dp for buttons
+    large = RoundedCornerShape(20.dp), // Stitch: 20dp for quote cards
+    extraLarge = RoundedCornerShape(24.dp) // Stitch: 24dp for collection cards, QOTD
 )
 
 /**
- * Custom shapes for specific UI components
+ * Stitch Design Custom Shapes
+ * Exact corner radius values from Stitch design specifications
  */
 object AppShapes {
     
     /**
-     * Quote card shape - rounded corners with medium radius
+     * Quote card shape - Stitch: 20dp rounded corners
+     * White/light background quote cards
      */
-    val quoteCard = RoundedCornerShape(
-        topStart = 16.dp,
-        topEnd = 16.dp,
-        bottomStart = 16.dp,
-        bottomEnd = 16.dp
-    )
+    val quoteCard = RoundedCornerShape(20.dp) // Stitch: 20dp
     
     /**
-     * Quote card shape with shadow/elevation - slightly larger radius
+     * Quote of the Day card shape - Stitch: 24dp rounded corners
+     * Large gradient card at top
      */
-    val quoteCardElevated = RoundedCornerShape(20.dp)
+    val quoteCardElevated = RoundedCornerShape(24.dp) // Stitch: 24dp
     
     /**
-     * Category chip shape
+     * Collection card shape - Stitch: 24dp rounded corners
+     * Dark background collection cards
      */
-    val categoryChip = RoundedCornerShape(12.dp)
+    val collectionCard = RoundedCornerShape(24.dp) // Stitch: 24dp
     
     /**
-     * Button shape
+     * Category chip shape - Stitch: Full pill shape (40dp height)
+     * Rounded fully to create pill shape
      */
-    val button = RoundedCornerShape(12.dp)
+    val categoryChip = RoundedCornerShape(20.dp) // Pill shape (half of 40dp height)
     
     /**
-     * Text field shape
+     * Button shape - Stitch: 16dp rounded corners
+     * Sign In button, primary buttons
      */
-    val textField = RoundedCornerShape(12.dp)
+    val button = RoundedCornerShape(16.dp) // Stitch: 16dp
     
     /**
-     * Small badge/pill shape
+     * Text field shape - Stitch: 16dp rounded corners
+     * Input fields in login screen
      */
-    val badge = RoundedCornerShape(8.dp)
+    val textField = RoundedCornerShape(16.dp) // Stitch: 16dp
     
     /**
-     * FAB shape
+     * Small badge/pill shape - Stitch: Pill shape
+     * Collection badge (quote count)
      */
-    val fab = RoundedCornerShape(16.dp)
+    val badge = RoundedCornerShape(12.dp) // Stitch: Pill shape for badges
     
     /**
-     * Bottom sheet shape
+     * FAB shape - Stitch: Fully rounded (circular)
+     * Floating action button
+     */
+    val fab = RoundedCornerShape(32.dp) // Circular (half of 64dp size)
+    
+    /**
+     * Bottom sheet shape - Stitch: 24dp top corners
+     * Modal bottom sheets
      */
     val bottomSheet = RoundedCornerShape(
         topStart = 24.dp,
@@ -70,7 +80,8 @@ object AppShapes {
     )
     
     /**
-     * Dialog shape
+     * Dialog shape - Stitch: 24dp rounded corners
+     * Alert dialogs, confirmation dialogs
      */
-    val dialog = RoundedCornerShape(24.dp)
+    val dialog = RoundedCornerShape(24.dp) // Stitch: 24dp
 }

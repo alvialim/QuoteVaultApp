@@ -83,7 +83,7 @@ class GetQuoteOfTheDayUseCase(
                     // Cache the quote for today
                     cacheQuote(result.data, todayDayOfYear)
                     Log.d(TAG, "Successfully fetched and cached quote of the day")
-                    result
+                    return result
                 }
                 is Result.Error -> {
                     Log.e(TAG, "Error fetching quote of the day: ${result.exception.message}")
@@ -95,7 +95,11 @@ class GetQuoteOfTheDayUseCase(
                     }
                     
                     // No cache available, return error
-                    result
+                    return result
+                }
+                is Result.Loading -> {
+                    // Loading state - return as is
+                    return result
                 }
             }
         } catch (e: Exception) {

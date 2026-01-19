@@ -151,8 +151,8 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Appearance Section
             SettingsSection(title = "Appearance") {
@@ -199,10 +199,15 @@ fun SettingsScreen(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
                 
+                // Stitch Design: Enhanced card elevation
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 4.dp,
+                        pressedElevation = 6.dp
                     )
                 ) {
                     QuoteCard(
@@ -510,14 +515,22 @@ private fun SettingsSection(
     title: String,
     content: @Composable () -> Unit
 ) {
+    // Stitch Design: Enhanced settings card elevation
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp,
+            pressedElevation = 6.dp,
+            hoveredElevation = 5.dp,
+            focusedElevation = 5.dp,
+            disabledElevation = 0.dp
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(20.dp)
         ) {
             Text(
                 text = title,

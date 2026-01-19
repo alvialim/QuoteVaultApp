@@ -90,6 +90,12 @@ class QuoteWidget : AppWidgetProvider() {
                         )
                         views.setTextViewText(R.id.widget_quote_author, "")
                     }
+                    is Result.Loading -> {
+                        // Loading state - keep current widget state
+                    }
+                is Result.Loading -> {
+                    // Loading state
+                }
                 }
                 
                 // Update widget on main thread

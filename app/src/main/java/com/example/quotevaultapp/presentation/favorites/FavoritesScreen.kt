@@ -178,12 +178,13 @@ fun FavoritesScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 // Search Field (Simple TextField - doesn't expand to full screen)
+                // Stitch Design: Increased spacing
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     placeholder = { Text("Search favorites...") },
                     leadingIcon = {
                         Icon(
@@ -210,12 +211,13 @@ fun FavoritesScreen(
                 )
                 
                 // Category Tabs (Horizontal Scroll)
+                // Stitch Design: Improved spacing between chips
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 12.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // All category
                     item {
@@ -261,7 +263,7 @@ fun FavoritesScreen(
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 items(5) {
                                     QuoteCardShimmer()
@@ -313,8 +315,8 @@ fun FavoritesScreen(
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 items(
                                     items = filteredFavorites,
@@ -427,8 +429,10 @@ private fun SwipeableQuoteCard(
 }
 
 /**
- * Category chip component
+ * Category chip component - Stitch Design enhanced
+ * Better elevation, spacing, and visual feedback
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryChip(
     category: QuoteCategory?,
@@ -439,10 +443,28 @@ private fun CategoryChip(
     InputChip(
         selected = isSelected,
         onClick = onClick,
-        label = { Text(label) },
+        label = { 
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+            ) 
+        },
+        // Stitch Design: Enhanced chip colors and styling
         colors = InputChipDefaults.inputChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        // Stitch Design: Better border styling
+        border = InputChipDefaults.inputChipBorder(
+            enabled = true,
+            selected = isSelected,
+            selectedBorderColor = MaterialTheme.colorScheme.primary,
+            borderColor = MaterialTheme.colorScheme.outline,
+            selectedBorderWidth = 2.dp,
+            borderWidth = 1.dp
         )
     )
 }
